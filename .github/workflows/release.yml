@@ -4,6 +4,10 @@ on:
   push:
     branches: ["main"]
 
+permissions:
+  contents: write
+  id-token: write
+
 jobs:
   release:
     name: Bump version and publish
@@ -28,6 +32,11 @@ jobs:
       - name: 📦 Install dependencies
         run: poetry install --with dev
 
+      - name: 🔧 Configure Git user
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
       - name: 🚀 Bump version with Commitizen
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -37,7 +46,35 @@ jobs:
       - name: 🧱 Build distribution
         run: poetry build
 
-      - name: 📦 Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+      - name: 📤 Push version bump and tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git push origin HEAD
+          git push origin --tags
+
+      - name: 🏷️ Get current version
+        id: get_version
+        run: |
+          echo "VERSION=$(poetry version -s)" >> $GITHUB_OUTPUT
+
+      - name: ✂️ Extract latest changelog section
+        run: |
+          awk '/^## /{i++} i==1' CHANGELOG.md > LATEST_CHANGELOG.md
+
+      - name: 🚀 Create GitHub release
+        uses: softprops/action-gh-release@v1
         with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
+          tag_name: v${{ steps.get_version.outputs.VERSION }}
+          name: Release v${{ steps.get_version.outputs.VERSION }}
+          body_path: LATEST_CHANGELOG.md
+          files: |
+            dist/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
+      #- name: 📦 Publish to PyPI
+      #  uses: pypa/gh-action-pypi-publish@release/v1
+      #  with:
+      #    password: ${{ secrets.PYPI_API_TOKEN }}

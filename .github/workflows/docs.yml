@@ -1,0 +1,36 @@
+name: Deploy Documentation
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  deploy-docs:
+    name: Build & Deploy MkDocs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout repo
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 🛠️ Install Poetry
+        uses: abatilo/actions-poetry@v3
+        with:
+          poetry-version: "1.8.2"
+
+      - name: 📦 Install dependencies
+        run: poetry install --with dev
+
+      - name: 🔧 Configure Git user (for gh-deploy)
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: 📚 Deploy MkDocs to GitHub Pages
+        run: poetry run mkdocs gh-deploy --force

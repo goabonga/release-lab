@@ -1,3 +1,10 @@
+## v0.2.0 (2025-08-02)
+
+### Feat
+
+- publish a new release
+- trigger release
+
 ## v0.1.0 (2025-08-02)
 
 ### Feat

@@ -1,0 +1,59 @@
+site_name: release-lab
+site_url: https://goabonga.github.io/release-lab
+repo_url: https://github.com/goabonga/release-lab
+repo_name: goabonga/release-lab
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.expand
+    - content.code.copy
+    - content.action.edit
+    - content.tabs.link
+    - navigation.instant
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+
+nav:
+  - Overview: index.md
+  - Usage:
+      - CLI: cli.md
+  - API Reference:
+      - Hello module: reference/hello.md
+  - Development:
+      - Code Of Conduct: code_of_conduct.md
+      - Contributing: contributing.md
+      - License: license.md
+      - Changelog: changelog.md
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - toc:
+      permalink: true
+  - pymdownx.superfences
+  - pymdownx.tabbed
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.emoji
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/goabonga/release-lab
+
+plugins:
+  - search
+  - gen-files:
+      scripts:
+        - docs/gen_ref_pages.py
+  - mkdocstrings:
+      default_handler: python

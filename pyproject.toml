@@ -1,0 +1,92 @@
+[tool.poetry]
+name = "release-lab"
+version = "0.1.0"
+description = "A sandbox for testing Python project release workflows, packaging, and CI/CD setups."
+authors = ["Chris <goabonga@pm.me>"]
+license = "MIT"
+readme = "README.md"
+packages = [
+  { include = "hello", from = "src" }
+]
+keywords = ["pypi", "ci", "release", "python", "template", "oss"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Build Tools",
+    "Typing :: Typed"
+]
+
+[tool.poetry.dependencies]
+python = ">=3.10"
+click = "^8.2.2"
+
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+commitizen = "*"
+pytest = "*"
+pytest-cov = "*"
+mkdocs = "*"
+mkdocs-material = "*"
+pre-commit = "*"
+ruff = "*"
+isort = "*"
+mypy = "*"
+mkdocs-gen-files = "^0.5.0"
+mkdocstrings = {extras = ["python"], version = "^0.30.0"}
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+hello = "hello.cli:main"
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.1.0"
+tag_format = "v$version"
+update_changelog_on_bump = true
+changelog_file = "CHANGELOG.md"
+version_files = [
+  "pyproject.toml",
+  "src/hello/__init__.py"
+]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "--cov=src/hello --cov-report=term --cov-report=xml --cov-report=html"
+testpaths = ["tests"]
+
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "pass  # abstract",
+    "\\.\\.\\.",
+    "except ImportError",
+]
+
+[tool.isort]
+profile = "black"
+src_paths = ["src", "tests"]
+
+[tool.ruff]
+line-length = 88
+src = ["src", "tests"]
+exclude = ["__pycache__"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = ["src", "tests"]

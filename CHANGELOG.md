@@ -1,3 +1,9 @@
+## v0.10.6 (2025-08-05)
+
+### Fix
+
+- version format in pipeline
+
 ## v0.10.5 (2025-08-05)
 
 ### Fix

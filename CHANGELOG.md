@@ -1,3 +1,13 @@
+## v0.5.0 (2025-08-05)
+
+### Feat
+
+- check licenses
+
+### Fix
+
+- use __expected_version__ in test_version
+
 ## v0.4.0 (2025-08-05)
 
 ### Feat

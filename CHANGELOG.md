@@ -1,3 +1,9 @@
+## v0.6.1 (2025-08-05)
+
+### Fix
+
+- upload tests report to codecov
+
 ## v0.6.0 (2025-08-05)
 
 ### Feat

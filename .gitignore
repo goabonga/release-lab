@@ -20,6 +20,7 @@ htmlcov/
 .tox/
 .cache/
 .pytest_cache/
+junit.xml
 
 # Mypy / Ruff / Pyright / others
 .mypy_cache/

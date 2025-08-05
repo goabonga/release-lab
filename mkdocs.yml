@@ -49,6 +49,7 @@ extra:
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/goabonga/release-lab
+  version: !ENV [DOC_VERSION, "dev"]
 
 plugins:
   - search

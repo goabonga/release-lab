@@ -82,8 +82,9 @@ jobs:
 
       - name: 📤 Push version bump and tag
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
+          git remote set-url origin https://Chris:${GH_TOKEN}@github.com/goabonga/release-lab.git
           git push origin HEAD
           git push origin --tags
 
@@ -105,7 +106,7 @@ jobs:
           files: |
             dist/*
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
 
       - name: 🔧 Configure Git user (for gh-deploy)

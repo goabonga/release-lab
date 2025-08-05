@@ -128,21 +128,11 @@ jobs:
           name: release-files
           path: .
 
-      - name: 🐍 Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: 🛠️ Install Poetry
-        uses: abatilo/actions-poetry@v3
-        with:
-          poetry-version: "1.8.2"
-
-      - name: 🏷️ Get version from pyproject
+      - name: 🏷️ Get version from dist
         id: get_version
         run: |
-          VERSION=$(poetry version -s)
-          echo "VERSION=${VERSION}" >> "$GITHUB_OUTPUT"
+          VERSION=$(ls dist | grep -oP 'release_lab-\K[0-9]+\.[0-9]+\.[0-9]+'| head -n 1)
+          echo "VERSION=\"${VERSION}\"" >> "$GITHUB_OUTPUT"
 
       - name: 🚀 Create GitHub release
         uses: softprops/action-gh-release@v1

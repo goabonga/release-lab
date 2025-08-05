@@ -34,6 +34,9 @@ jobs:
           poetry run python ./scripts/add_license_header.py --path src --types py --check
           poetry run python ./scripts/add_license_header.py --path tests --types py --check
 
+      - name: 🧹 Check import sorting with isort
+        run: poetry run isort . --check-only --diff
+
       - name: 🔎 Type check with MyPy
         run: poetry run mypy src/ tests/
 

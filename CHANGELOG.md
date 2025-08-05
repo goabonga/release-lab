@@ -1,3 +1,14 @@
+## v0.14.0 (2025-08-05)
+
+### Feat
+
+- exec tests pipeline on any pr
+
+### Fix
+
+- set id to run tests for conditional checking
+- set conditional upload to codecover
+
 ## v0.13.0 (2025-08-05)
 
 ### Feat

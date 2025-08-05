@@ -1,3 +1,9 @@
+## v0.5.1 (2025-08-05)
+
+### Fix
+
+- fix test version file name
+
 ## v0.5.0 (2025-08-05)
 
 ### Feat

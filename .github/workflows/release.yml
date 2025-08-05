@@ -13,6 +13,10 @@ jobs:
     name: Bump version and publish
     runs-on: ubuntu-latest
 
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/release-lab
+
     steps:
       - name: ⬇️ Checkout
         uses: actions/checkout@v4
@@ -117,3 +121,8 @@ jobs:
       #  uses: pypa/gh-action-pypi-publish@release/v1
       #  with:
       #    password: ${{ secrets.PYPI_API_TOKEN }}
+
+      - name: 📦 Publish to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/

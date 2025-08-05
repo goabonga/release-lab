@@ -47,6 +47,12 @@ jobs:
       - name: 📦 Install dependencies
         run: poetry install --with dev
 
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: goabonga/release-lab
+
       - name: 🔧 Configure Git user
         run: |
           git config --global user.name "Chris"

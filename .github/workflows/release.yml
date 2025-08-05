@@ -9,34 +9,14 @@ permissions:
   id-token: write
 
 jobs:
-  release:
-    name: Bump version and publish
+  test:
+    name: Run tests & coverage
     runs-on: ubuntu-latest
-
-    environment:
-      name: testpypi
-      url: https://test.pypi.org/p/release-lab
-
     steps:
       - name: ⬇️ Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # needed for commitizen changelog
-
-      - name: 🔑 Import GPG key
-        run: |
-          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
-          git config --global user.signingkey "$(gpg --list-secret-keys --keyid-format=LONG | grep sec | awk '{print $2}' | cut -d/ -f2)"
-          git config --global commit.gpgsign true
-          git config --global tag.gpgSign true
-        env:
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-
-      - name: 🔓 Unlock GPG key
-        run: |
-          echo "test" | gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --pinentry-mode loopback -s >/dev/null
-        env:
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          fetch-depth: 0
 
       - name: 🐍 Setup Python
         uses: actions/setup-python@v5
@@ -66,36 +46,93 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
+  bump_and_build:
+    name: Bump version & build
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔑 Import GPG key
+        run: |
+          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+          git config --global user.signingkey "$(gpg --list-secret-keys --keyid-format=LONG | grep sec | awk '{print $2}' | cut -d/ -f2)"
+          git config --global commit.gpgsign true
+          git config --global tag.gpgSign true
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+
+      - name: 🔓 Unlock GPG key
+        run: |
+          echo "test" | gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --pinentry-mode loopback -s >/dev/null
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 🛠️ Install Poetry
+        uses: abatilo/actions-poetry@v3
+        with:
+          poetry-version: "1.8.2"
+
+      - name: 📦 Install dependencies
+        run: poetry install --with dev
+
       - name: 🔧 Configure Git user
         run: |
           git config --global user.name "Chris"
           git config --global user.email "goabonga@pm.me"
 
       - name: 🚀 Bump version with Commitizen
+        run: poetry run cz bump --yes --changelog
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          poetry run cz bump --yes --changelog
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: 🧱 Build distribution
         run: poetry build
 
+      - name: ✂️ Extract latest changelog section
+        run: |
+          awk '/^## /{i++} i==1' CHANGELOG.md > LATEST_CHANGELOG.md
+
       - name: 📤 Push version bump and tag
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           git remote set-url origin https://Chris:${GH_TOKEN}@github.com/goabonga/release-lab.git
           git push origin HEAD
           git push origin --tags
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
-      - name: 🏷️ Get current version
+      - name: 📤 Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-files
+          path: |
+            dist/*
+            LATEST_CHANGELOG.md
+
+  github_release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: bump_and_build
+    steps:
+      - name: 📥 Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-files
+          path: .
+
+      - name: 🏷️ Get version from dist
         id: get_version
         run: |
-          echo "VERSION=$(poetry version -s)" >> $GITHUB_OUTPUT
-
-      - name: ✂️ Extract latest changelog section
-        run: |
-          awk '/^## /{i++} i==1' CHANGELOG.md > LATEST_CHANGELOG.md
+          VERSION=$(ls dist | grep -oP 'release_lab-\K[0-9]+\.[0-9]+\.[0-9]+')
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
       - name: 🚀 Create GitHub release
         uses: softprops/action-gh-release@v1
@@ -108,20 +145,48 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
+  deploy_docs:
+    name: Deploy MkDocs
+    runs-on: ubuntu-latest
+    needs: bump_and_build
+    steps:
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v4
 
-      - name: 🔧 Configure Git user (for gh-deploy)
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 🛠️ Install Poetry
+        uses: abatilo/actions-poetry@v3
+        with:
+          poetry-version: "1.8.2"
+
+      - name: 📦 Install dependencies
+        run: poetry install --with dev
+
+      - name: 🔧 Configure Git user
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "Chris"
+          git config --global user.email "goabonga@pm.me""
 
       - name: 📚 Deploy MkDocs to GitHub Pages
         run: poetry run mkdocs gh-deploy --force
 
-
-      #- name: 📦 Publish to PyPI
-      #  uses: pypa/gh-action-pypi-publish@release/v1
-      #  with:
-      #    password: ${{ secrets.PYPI_API_TOKEN }}
+  publish_testpypi:
+    name: Publish to TestPyPI
+    runs-on: ubuntu-latest
+    needs: bump_and_build
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/release-lab
+    steps:
+      - name: 📥 Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-files
+          path: .
 
       - name: 📦 Publish to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1

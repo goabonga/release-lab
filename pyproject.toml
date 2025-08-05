@@ -57,7 +57,9 @@ update_changelog_on_bump = true
 changelog_file = "CHANGELOG.md"
 version_files = [
   "pyproject.toml",
-  "src/hello/__init__.py"
+  "src/hello/__init__.py",
+  "tests/test_version.py:__expected_version__"
+
 ]
 gpg_sign = true
 

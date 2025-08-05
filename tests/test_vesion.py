@@ -3,6 +3,8 @@
 
 from hello import __version__
 
+__expected_version__: str = "0.4.0"
+
 
 def test_version() -> None:
-    assert __version__ == "0.1.0"
+    assert __version__ == __expected_version__

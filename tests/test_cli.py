@@ -2,6 +2,7 @@
 # Copyright (c) 2025 Chris <goabonga@pm.me>
 
 from click.testing import CliRunner
+
 from hello.cli import main
 
 

@@ -24,7 +24,7 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = ">=3.10"
-click = "^8.2.2"
+click = "^8.2.1"
 
 [tool.poetry.group.dev]
 optional = true
@@ -59,6 +59,7 @@ version_files = [
   "pyproject.toml",
   "src/hello/__init__.py"
 ]
+gpg_sign = true
 
 [tool.pytest.ini_options]
 minversion = "7.0"

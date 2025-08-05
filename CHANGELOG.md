@@ -1,3 +1,13 @@
+## v0.13.0 (2025-08-05)
+
+### Feat
+
+- add isort check on tests pipeline
+
+### Fix
+
+- apply isort
+
 ## v0.12.0 (2025-08-05)
 
 ### Feat

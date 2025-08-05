@@ -1,6 +1,10 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2025 Chris <goabonga@pm.me>
+
 # docs/gen_ref_pages.py
 
 from pathlib import Path
+
 import mkdocs_gen_files
 
 FILES = {

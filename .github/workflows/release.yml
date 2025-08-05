@@ -47,11 +47,20 @@ jobs:
       - name: 📦 Install dependencies
         run: poetry install --with dev
 
-      - name: Upload coverage reports to Codecov
+      - name: 🧪 Run tests
+        run: poetry run pytest
+
+      - name: 📤 Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: goabonga/release-lab
+
+      - name: 📤 Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: 🔧 Configure Git user
         run: |

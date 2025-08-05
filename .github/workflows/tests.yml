@@ -26,8 +26,13 @@ jobs:
       - name: 📦 Install dependencies
         run: poetry install --with dev
 
-      - name: 🔍 Lint with Ruff
-        run: poetry run ruff check .
+      - name: 📦 Install dependencies
+        run: poetry install --with dev
+
+      - name: 🔍 Checking SPDX license headers
+        run: |
+          poetry run python ./scripts/add_license_header.py --path src --types py --check
+          poetry run python ./scripts/add_license_header.py --path tests --types py --check
 
       - name: 🔎 Type check with MyPy
         run: poetry run mypy src/ tests/

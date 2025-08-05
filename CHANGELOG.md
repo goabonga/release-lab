@@ -1,3 +1,14 @@
+## v0.6.0 (2025-08-05)
+
+### Feat
+
+- upload test result
+- publish coverage to Codecov
+
+### Fix
+
+- commitizen use version into pyproject
+
 ## v0.5.1 (2025-08-05)
 
 ### Fix

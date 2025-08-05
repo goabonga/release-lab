@@ -3,6 +3,7 @@
 
 import click
 
+
 @click.command()
 @click.argument("name", required=False)
 def main(name: str | None = None) -> None:

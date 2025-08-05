@@ -1,3 +1,9 @@
+## v0.4.0 (2025-08-05)
+
+### Feat
+
+- signed tags with gpg key
+
 ## v0.3.0 (2025-08-02)
 
 ### Feat

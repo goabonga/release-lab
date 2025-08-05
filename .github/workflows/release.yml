@@ -103,7 +103,7 @@ jobs:
 
       - name: 📤 Push version bump and tag
         run: |
-          git remote set-url origin https://Chris:${GH_TOKEN}@github.com/goabonga/release-lab.git
+          git remote set-url origin https://goabonga:${GH_TOKEN}@github.com/goabonga/release-lab.git
           git push origin HEAD
           git push origin --tags
         env:
@@ -127,6 +127,16 @@ jobs:
         with:
           name: release-files
           path: .
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 🛠️ Install Poetry
+        uses: abatilo/actions-poetry@v3
+        with:
+          poetry-version: "1.8.2"
 
       - name: 🏷️ Get version from pyproject
         id: get_version

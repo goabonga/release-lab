@@ -1,3 +1,9 @@
+## v0.11.0 (2025-08-05)
+
+### Feat
+
+- fix documentation plugins
+
 ## v0.10.12 (2025-08-05)
 
 ### Fix

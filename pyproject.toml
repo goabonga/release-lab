@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "release-lab"
-version = "0.10.12"
+version = "0.11.0"
 description = "A sandbox for testing Python project release workflows, packaging, and CI/CD setups."
 authors = ["Chris <goabonga@pm.me>"]
 license = "MIT"
@@ -52,7 +52,7 @@ hello = "hello.cli:main"
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.10.12"
+version = "0.11.0"
 tag_format = "v$version"
 update_changelog_on_bump = true
 changelog_file = "CHANGELOG.md"

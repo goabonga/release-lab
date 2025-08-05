@@ -128,11 +128,11 @@ jobs:
           name: release-files
           path: .
 
-      - name: 🏷️ Get version from dist
+      - name: 🏷️ Get version from pyproject
         id: get_version
         run: |
-          VERSION=$(ls dist | grep -oP 'release_lab-\K[0-9]+\.[0-9]+\.[0-9]+')
-          echo "VERSION=\"${VERSION}\"" >> "$GITHUB_OUTPUT"
+          VERSION=$(poetry version -s)
+          echo "VERSION=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: 🚀 Create GitHub release
         uses: softprops/action-gh-release@v1

@@ -1,5 +1,7 @@
 # Welcome to `release-lab` 👋
 
+_Current documentation version: **{{ version }}**_
+
 **`release-lab`** is a sandbox repository designed to test, validate, and document open-source Python project workflows — including packaging, release automation, testing, documentation, and CI/CD.
 
 This project follows modern Python standards with tools like:

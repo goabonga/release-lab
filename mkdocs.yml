@@ -52,6 +52,7 @@ extra:
 
 plugins:
   - search
+  - macros
   - gen-files:
       scripts:
         - docs/gen_ref_pages.py

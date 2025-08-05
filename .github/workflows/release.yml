@@ -35,6 +35,7 @@ jobs:
         run: poetry run cz bump --yes --files-only
 
       - name: 🧪 Run tests
+        id: run_tests
         run: poetry run pytest
 
       - name: 📤 Upload coverage reports to Codecov

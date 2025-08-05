@@ -40,6 +40,7 @@ jobs:
         run: poetry run mypy src/ tests/
 
       - name: 🧪 Run tests
+        id: run_tests
         run: poetry run pytest --cov
 
       - name: 📤 Upload coverage reports to Codecov

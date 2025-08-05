@@ -3,7 +3,7 @@
 
 from .cli import main as cli
 
-__version__: str = "0.10.1"
+__version__: str = "0.10.2"
 """Current version of the release-lab package."""
 
 __all__ = [

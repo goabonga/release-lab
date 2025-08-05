@@ -1,3 +1,10 @@
+## v0.10.11 (2025-08-05)
+
+### Fix
+
+- pipeline
+- bump temporary version in tests
+
 ## v0.10.10 (2025-08-05)
 
 ### Fix

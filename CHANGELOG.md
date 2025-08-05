@@ -1,3 +1,9 @@
+## v0.10.12 (2025-08-05)
+
+### Fix
+
+- fix mkdocs current version
+
 ## v0.10.11 (2025-08-05)
 
 ### Fix

@@ -57,3 +57,5 @@ jobs:
 
       - name: 🚀 Force push changes
         run: git push --force-with-lease
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}

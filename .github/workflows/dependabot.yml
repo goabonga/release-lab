@@ -47,19 +47,23 @@ jobs:
           GIT_AUTHOR_EMAIL: "goabonga@pm.me"
           GIT_COMMITTER_NAME: "Chris"
           GIT_COMMITTER_EMAIL: "goabonga@pm.me"
+          BRANCH_NAME: ${{ github.head_ref }}
         run: |
-          git config --global sequence.editor 'sed -i "s/^pick /edit /"'
           git fetch origin main
-
           BASE=$(git merge-base HEAD origin/main)
-          echo "🔁 Rebase from base commit: $BASE"
-          git rebase -i $BASE &
 
-          while git rebase --show-current-patch > /dev/null 2>&1; do
-            echo "🔏 Signing current commit..."
+          echo "🔁 Rebase from: $BASE"
+          export GIT_SEQUENCE_EDITOR="sed -i 's/^pick /edit /'"
+
+          git rebase -i "$BASE"
+
+          while [ -f .git/rebase-merge ]; do
+            echo "🔏 Amending commit..."
             git commit --amend --no-edit --reset-author --gpg-sign
             git rebase --continue || true
           done
+
+
 #        run: |
 #          git config --global sequence.editor 'sed -i "s/^pick /edit /"'
 #          git fetch origin main
@@ -75,6 +79,9 @@ jobs:
       - name: 🚀 Force push changes
         run: |
           git remote set-url origin https://goabonga:${GH_TOKEN}@github.com/goabonga/release-lab.git
-          git push --force-with-lease
+          echo "✅ Rebase terminé. Pushing to origin $BRANCH_NAME"
+          git push origin HEAD:$BRANCH_NAME --force-with-lease
+
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          BRANCH_NAME: ${{ github.head_ref }}

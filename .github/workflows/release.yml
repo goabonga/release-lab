@@ -1,4 +1,7 @@
-name: Release
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2025 Chris <goabonga@pm.me>
+
+name: Main Branch Release
 
 on:
   push:
@@ -9,19 +12,23 @@ permissions:
   id-token: write
 
 jobs:
+
   test:
-    name: Run tests & coverage
+    name: Test and Lint (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+
     steps:
       - name: ⬇️ Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: 🐍 Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
 
       - name: 🛠️ Install Poetry
         uses: abatilo/actions-poetry@v3
@@ -31,22 +38,33 @@ jobs:
       - name: 📦 Install dependencies
         run: poetry install --with dev
 
+      - name: 🔍 Checking SPDX license headers
+        run: |
+          poetry run python ./scripts/add_license_header.py --path src --types py --check
+          poetry run python ./scripts/add_license_header.py --path tests --types py --check
+
+      - name: 🧹 Check import sorting with isort
+        run: poetry run isort . --check-only --diff
+
+      - name: 🔎 Type check with MyPy
+        run: poetry run mypy src/ tests/
+
       - name: 🔄 Temporary bump for tests
         run: poetry run cz bump --yes --files-only
 
       - name: 🧪 Run tests
         id: run_tests
-        run: poetry run pytest
+        run: poetry run pytest --cov
 
       - name: 📤 Upload coverage reports to Codecov
-        if: steps.run_tests.outcome == 'success'
+        if: matrix.python-version == '3.13' && steps.run_tests.outcome == 'success'
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: goabonga/release-lab
 
       - name: 📤 Upload test results to Codecov
-        if: steps.run_tests.outcome == 'success'
+        if: matrix.python-version == '3.13' && steps.run_tests.outcome == 'success'
         uses: codecov/test-results-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -108,7 +126,7 @@ jobs:
 
       - name: 📤 Push version bump and tag
         run: |
-          git remote set-url origin https://goabonga:${GH_TOKEN}@github.com/goabonga/release-lab.git
+          git remote set-url origin https://goabonga:${GH_TOKEN}@github.com/goabonga/earthquake.git
           git push origin HEAD
           git push origin --tags
         env:
@@ -191,12 +209,12 @@ jobs:
           DOC_VERSION: ${{ env.TAG }}
 
   publish_testpypi:
-    name: Publish to TestPyPI
+    name: Publish to PyPI
     runs-on: ubuntu-latest
     needs: github_release
     environment:
-      name: testpypi
-      url: https://test.pypi.org/p/release-lab
+      name: pypi
+      url: https://pypi.org/p/earthquake
     steps:
       - name: 📥 Download build artifacts
         uses: actions/download-artifact@v4
@@ -204,7 +222,5 @@ jobs:
           name: release-files
           path: .
 
-      - name: 📦 Publish to TestPyPI
+      - name: 📦 Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          repository-url: https://test.pypi.org/legacy/

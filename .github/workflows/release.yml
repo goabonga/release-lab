@@ -331,7 +331,7 @@ jobs:
           git commit -S -m "docs: publish docs for v${{ needs.bump_and_build.outputs.version }}"
           git push origin gh-pages
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
       #- name: 🏷️ Get current tag
       #  id: tag
       #  run: |

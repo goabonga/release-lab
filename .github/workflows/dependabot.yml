@@ -37,14 +37,23 @@ jobs:
           git config --global user.name "Chris"
           git config --global user.email "goabonga@pm.me"
 
-      - name: ✏️ Re-sign all commits with new author
-        run: |
-          git rebase -i --root --exec "git commit --amend --no-edit --reset-author"
+      - name: ✏️ Re-sign all commits in PR
         env:
           GIT_AUTHOR_NAME: "Chris"
           GIT_AUTHOR_EMAIL: "goabonga@pm.me"
           GIT_COMMITTER_NAME: "Chris"
           GIT_COMMITTER_EMAIL: "goabonga@pm.me"
+        run: |
+          git config --global sequence.editor 'sed -i "s/^pick /edit /"'
+          git fetch origin main
+
+          BASE=$(git merge-base HEAD origin/main)
+
+          git rebase -i $BASE
+
+          while ! git rebase --continue 2>/dev/null; do
+            git commit --amend --no-edit --reset-author --gpg-sign
+          done
 
       - name: 🚀 Force push changes
         run: git push --force-with-lease

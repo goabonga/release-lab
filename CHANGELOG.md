@@ -1,3 +1,9 @@
+## v0.21.3 (2025-08-06)
+
+### Fix
+
+- check release signed doc
+
 ## v0.21.2 (2025-08-06)
 
 ### Fix

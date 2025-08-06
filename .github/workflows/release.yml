@@ -54,6 +54,7 @@ jobs:
 
       - name: 🔄 Temporary bump for tests
         run: poetry run cz bump --yes --files-only
+        continue-on-error: true
 
       - name: 🧪 Run tests
         id: run_tests
@@ -72,10 +73,91 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
-  bump_and_build:
-    name: Bump version & build
+#  bump_and_build:
+#    name: Bump version & build
+#    runs-on: ubuntu-latest
+#    needs: test
+#    steps:
+#      - name: ⬇️ Checkout
+#        uses: actions/checkout@v4
+#        with:
+#          fetch-depth: 0
+#
+#      - name: 🔑 Import GPG key
+#        run: |
+#          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+#          git config --global user.signingkey "$(gpg --list-secret-keys --keyid-format=LONG | grep sec | awk '{print $2}' | cut -d/ -f2)"
+#          git config --global commit.gpgsign true
+#          git config --global tag.gpgSign true
+#        env:
+#          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+#
+#      - name: 🔓 Unlock GPG key
+#        run: |
+#          echo "test" | gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --pinentry-mode loopback -s >/dev/null
+#        env:
+#          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+#
+#      - name: 🐍 Setup Python
+#        uses: actions/setup-python@v5
+#        with:
+#          python-version: "3.11"
+#
+#      - name: 🛠️ Install Poetry
+#        uses: abatilo/actions-poetry@v3
+#        with:
+#          poetry-version: "1.8.2"
+#
+#      - name: 📦 Install dependencies
+#        run: poetry install --with dev
+#
+#      - name: 🔧 Configure Git user
+#        run: |
+#          git config --global user.name "Chris"
+#          git config --global user.email "goabonga@pm.me"
+#
+#      - name: 🚀 Bump version with Commitizen
+#        id: bump_check
+#        run: |
+#          if poetry run cz bump --yes --changelog; then
+#            echo "bump_made=true" >> "$GITHUB_OUTPUT"
+#          else
+#            echo "No version bump needed."
+#            echo "bump_made=false" >> "$GITHUB_OUTPUT"
+#            exit 0
+#          fi
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+#
+#      - name: 🧱 Build distribution
+#        run: poetry build
+#
+#      - name: ✂️ Extract latest changelog section
+#        run: |
+#          awk '/^## /{i++} i==1' CHANGELOG.md > LATEST_CHANGELOG.md
+#
+#      - name: 📤 Push version bump and tag
+#        run: |
+#          git remote set-url origin https://goabonga:${GH_TOKEN}@github.com/goabonga/release-lab.git
+#          git push origin HEAD
+#          git push origin --tags
+#        env:
+#          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+#
+#      - name: 📤 Upload build artifacts
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: release-files
+#          path: |
+#            dist/*
+#            LATEST_CHANGELOG.md
+
+  bump_version:
+    name: Bump version
     runs-on: ubuntu-latest
     needs: test
+    outputs:
+      bump_made: ${{ steps.bump_check.outputs.bump_made }}
     steps:
       - name: ⬇️ Checkout
         uses: actions/checkout@v4
@@ -116,9 +198,41 @@ jobs:
           git config --global user.email "goabonga@pm.me"
 
       - name: 🚀 Bump version with Commitizen
-        run: poetry run cz bump --yes --changelog
+        id: bump_check
+        run: |
+          if poetry run cz bump --yes --changelog; then
+            echo "bump_made=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No version bump needed."
+            echo "bump_made=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
+  build_and_tag:
+    name: Build & Tag
+    runs-on: ubuntu-latest
+    needs: bump_version
+    if: needs.bump_version.outputs.bump_made == 'true'
+    steps:
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 🛠️ Install Poetry
+        uses: abatilo/actions-poetry@v3
+        with:
+          poetry-version: "1.8.2"
+
+      - name: 📦 Install dependencies
+        run: poetry install --with dev
 
       - name: 🧱 Build distribution
         run: poetry build
@@ -146,7 +260,10 @@ jobs:
   github_release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
-    needs: bump_and_build
+    #needs: bump_and_build
+    #if: needs.bump_and_build.outputs.bump_made == 'true'
+    needs: build_and_tag
+    if: needs.bump_version.outputs.bump_made == 'true'
     steps:
       - name: 📥 Download build artifacts
         uses: actions/download-artifact@v4
@@ -174,7 +291,10 @@ jobs:
   deploy_docs:
     name: Deploy MkDocs
     runs-on: ubuntu-latest
+    #needs: github_release
+    #if: needs.bump_and_build.outputs.bump_made == 'true'
     needs: github_release
+    if: needs.bump_version.outputs.bump_made == 'true'
     steps:
       - name: ⬇️ Checkout
         uses: actions/checkout@v4
@@ -214,10 +334,16 @@ jobs:
   publish_testpypi:
     name: Publish to PyPI
     runs-on: ubuntu-latest
+    #needs: github_release
+    #if: needs.bump_and_build.outputs.bump_made == 'true'
     needs: github_release
+    if: needs.bump_version.outputs.bump_made == 'true'
+    #environment:
+    #  name: pypi
+    #  url: https://pypi.org/p/release-lab
     environment:
-      name: pypi
-      url: https://pypi.org/p/release-lab
+      name: testpypi
+      url: https://test.pypi.org/p/release-lab
     steps:
       - name: 📥 Download build artifacts
         uses: actions/download-artifact@v4
@@ -227,3 +353,5 @@ jobs:
 
       - name: 📦 Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/

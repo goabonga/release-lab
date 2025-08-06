@@ -3,7 +3,7 @@
 
 from hello import __version__
 
-__expected_version__: str = "0.18.1"
+__expected_version__: str = "0.18.2"
 
 
 def test_version() -> None:

@@ -1,3 +1,9 @@
+## v0.18.2 (2025-08-06)
+
+### Fix
+
+- use override branch for tag into codecov
+
 ## v0.18.1 (2025-08-06)
 
 ### Fix

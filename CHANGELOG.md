@@ -1,3 +1,9 @@
+## v0.19.0 (2025-08-06)
+
+### Feat
+
+- sign rewrite and sign dependabot commits
+
 ## v0.18.6 (2025-08-06)
 
 ### Fix

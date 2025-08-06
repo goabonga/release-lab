@@ -1,5 +1,7 @@
 # release-lab
 
+[![codecov](https://codecov.io/github/goabonga/release-lab/branch/main/graph/badge.svg?token=CVBKEN7GA1)](https://codecov.io/github/goabonga/release-lab)
+
 🧪 **release-lab** is a sandbox repository used to test and validate workflows, tools, and configurations for releasing Python open-source projects.
 
 This lab aims to serve as a base for reusable and reliable infrastructure before applying it to production repositories.

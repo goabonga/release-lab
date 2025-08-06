@@ -68,14 +68,16 @@ jobs:
         run: poetry run pytest --cov
 
       - name: 📤 Upload coverage reports to Codecov
-        if: matrix.python-version == '3.13' && steps.run_tests.outcome == 'success' && steps.bump_check.outputs.bump_made == 'false'
+        if: matrix.python-version == '3.13' && steps.run_tests.outcome == 'success' 
+        #&& steps.bump_check.outputs.bump_made == 'false'
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          slug: goabonga/release-lab
+          #slug: goabonga/release-lab
 
       - name: 📤 Upload test results to Codecov
-        if: matrix.python-version == '3.13' && steps.run_tests.outcome == 'success' && steps.bump_check.outputs.bump_made == 'false'
+        if: matrix.python-version == '3.13' && steps.run_tests.outcome == 'success' 
+        #&& steps.bump_check.outputs.bump_made == 'false'
         uses: codecov/test-results-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -214,18 +216,18 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          slug: goabonga/release-lab
+          #slug: goabonga/release-lab
           #files: coverage.xml
-          flags: v${{ needs.bump_and_build.outputs.version }}
+          override_branch: v${{ needs.bump_and_build.outputs.version }}
           #name: v${{ needs.bump_and_build.outputs.version }}
 
       - name: 📤 Upload test results to Codecov
         uses: codecov/test-results-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          slug: goabonga/release-lab
+          #slug: goabonga/release-lab
           #files: junit.xml
-          flags: v${{ needs.bump_and_build.outputs.version }}
+          override_branch: v${{ needs.bump_and_build.outputs.version }}
           #name: v${{ needs.bump_and_build.outputs.version }}
 
   github_release:

@@ -1,3 +1,14 @@
+## v0.15.0 (2025-08-06)
+
+### Feat
+
+- use matrix in tests
+
+### Fix
+
+- set project name into pipeline
+- get tags on tests step into release pipeline
+
 ## v0.14.0 (2025-08-05)
 
 ### Feat

@@ -37,7 +37,7 @@ jobs:
       - name: 🛠️ Install Poetry
         uses: abatilo/actions-poetry@v4
         with:
-          poetry-version: "1.8.2"
+          poetry-version: "2.1.1"
 
       - name: 📦 Install dependencies
         run: poetry install --with dev
@@ -139,7 +139,7 @@ jobs:
       - name: 🛠️ Install Poetry
         uses: abatilo/actions-poetry@v4
         with:
-          poetry-version: "1.8.2"
+          poetry-version: "2.1.1"
 
       - name: 📦 Install dependencies
         run: poetry install --with dev
@@ -287,7 +287,7 @@ jobs:
       - name: 🛠️ Install Poetry
         uses: abatilo/actions-poetry@v4
         with:
-          poetry-version: "1.8.2"
+          poetry-version: "2.1.1"
 
       - name: 📦 Install dependencies
         run: poetry install --with dev

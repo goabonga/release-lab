@@ -1,0 +1,50 @@
+name: ♻️ Sign Dependabot Commits
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+jobs:
+  sign-dependabot-commits:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: 🔑 Import GPG key
+        run: |
+          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+          git config --global user.signingkey "$(gpg --list-secret-keys --keyid-format=LONG | grep sec | awk '{print $2}' | cut -d/ -f2)"
+          git config --global commit.gpgsign true
+          git config --global tag.gpgSign true
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+
+      - name: 🔓 Unlock GPG key
+        run: |
+          echo "test" | gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --pinentry-mode loopback -s >/dev/null
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: 🔧 Configure Git user
+        run: |
+          git config --global user.name "Chris"
+          git config --global user.email "goabonga@pm.me"
+
+      - name: ✏️ Re-sign all commits with new author
+        run: |
+          git rebase -i --root --exec "git commit --amend --no-edit --reset-author"
+        env:
+          GIT_AUTHOR_NAME: "Chris"
+          GIT_AUTHOR_EMAIL: "goabonga@pm.me"
+          GIT_COMMITTER_NAME: "Chris"
+          GIT_COMMITTER_EMAIL: "goabonga@pm.me"
+
+      - name: 🚀 Force push changes
+        run: git push --force-with-lease

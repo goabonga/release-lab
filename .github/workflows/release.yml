@@ -129,7 +129,7 @@ jobs:
 
       - name: 📤 Push version bump and tag
         run: |
-          git remote set-url origin https://goabonga:${GH_TOKEN}@github.com/goabonga/earthquake.git
+          git remote set-url origin https://goabonga:${GH_TOKEN}@github.com/goabonga/release-lab.git
           git push origin HEAD
           git push origin --tags
         env:
@@ -217,7 +217,7 @@ jobs:
     needs: github_release
     environment:
       name: pypi
-      url: https://pypi.org/p/earthquake
+      url: https://pypi.org/p/release-lab
     steps:
       - name: 📥 Download build artifacts
         uses: actions/download-artifact@v4

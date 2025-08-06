@@ -1,3 +1,16 @@
+## v0.16.0 (2025-08-06)
+
+## v0.16.0 (2025-08-06)
+
+### Feat
+
+- upload coverage and tests result for tag
+- test to publish a new release
+
+### Fix
+
+- use bump_version into build_and_tag step
+
 ## v0.15.0 (2025-08-06)
 
 ### Feat

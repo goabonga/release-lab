@@ -1,3 +1,9 @@
+## v0.18.5 (2025-08-06)
+
+### Fix
+
+- use "needs.bump_and_build.outputs.version"
+
 ## v0.18.4 (2025-08-06)
 
 ### Fix

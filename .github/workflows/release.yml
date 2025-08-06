@@ -201,13 +201,13 @@ jobs:
   #        fetch-tags: true
   #
   #    - name: 📥 Download coverage artifact (Python 3.13)
-  #      uses: actions/download-artifact@v4
+  #      uses: actions/download-artifact@v5
   #      with:
   #        name: coverage
   #        path: .
   #
   #    - name: 📥 Download coverage artifact (Python 3.13)
-  #      uses: actions/download-artifact@v4
+  #      uses: actions/download-artifact@v5
   #      with:
   #        name: junit
   #        path: .
@@ -239,7 +239,7 @@ jobs:
     if: needs.bump_and_build.outputs.bump_made == 'true'
     steps:
       - name: 📥 Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: release-files
           path: .
@@ -324,7 +324,7 @@ jobs:
       url: https://test.pypi.org/p/release-lab
     steps:
       - name: 📥 Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: release-files
           path: .

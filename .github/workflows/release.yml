@@ -82,19 +82,19 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
-      - name: 📦 Upload coverage report as artifact
-        if: matrix.python-version == '3.13' && steps.run_tests.outcome == 'success' && steps.bump_check.outputs.bump_made == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage
-          path: coverage.xml
-
-      - name: 📦 Upload junit report as artifact
-        if: matrix.python-version == '3.13' && steps.run_tests.outcome == 'success' && steps.bump_check.outputs.bump_made == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: junit
-          path: junit.xml
+      #- name: 📦 Upload coverage report as artifact
+      #  if: matrix.python-version == '3.13' && steps.run_tests.outcome == 'success' && steps.bump_check.outputs.bump_made == 'true'
+      #  uses: actions/upload-artifact@v4
+      #  with:
+      #    name: coverage
+      #    path: coverage.xml
+      #
+      #- name: 📦 Upload junit report as artifact
+      #  if: matrix.python-version == '3.13' && steps.run_tests.outcome == 'success' && steps.bump_check.outputs.bump_made == 'true'
+      #  uses: actions/upload-artifact@v4
+      #  with:
+      #    name: junit
+      #    path: junit.xml
 
   bump_and_build:
     name: Bump version and build package
@@ -186,49 +186,49 @@ jobs:
             dist/*
             LATEST_CHANGELOG.md
 
-  codecov_tag:
-    name: Upload coverage to Codecov (tag)
-    runs-on: ubuntu-latest
-    needs: 
-      - test
-      - bump_and_build
-    if: needs.bump_and_build.outputs.bump_made == 'true'
-    steps:
-      - name: ⬇️ Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          fetch-tags: true
-
-      - name: 📥 Download coverage artifact (Python 3.13)
-        uses: actions/download-artifact@v4
-        with:
-          name: coverage
-          path: .
-
-      - name: 📥 Download coverage artifact (Python 3.13)
-        uses: actions/download-artifact@v4
-        with:
-          name: junit
-          path: .
-
-      - name: 📤 Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          #slug: goabonga/release-lab
-          #files: coverage.xml
-          flags: v${{ needs.bump_and_build.outputs.version }}
-          name: v${{ needs.bump_and_build.outputs.version }}
-
-      - name: 📤 Upload test results to Codecov
-        uses: codecov/test-results-action@v1
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          #slug: goabonga/release-lab
-          #files: junit.xml
-          flags: v${{ needs.bump_and_build.outputs.version }}
-          name: v${{ needs.bump_and_build.outputs.version }}
+  #codecov_tag:
+  #  name: Upload coverage to Codecov (tag)
+  #  runs-on: ubuntu-latest
+  #  needs: 
+  #    - test
+  #    - bump_and_build
+  #  if: needs.bump_and_build.outputs.bump_made == 'true'
+  #  steps:
+  #    - name: ⬇️ Checkout
+  #      uses: actions/checkout@v4
+  #      with:
+  #        fetch-depth: 0
+  #        fetch-tags: true
+  #
+  #    - name: 📥 Download coverage artifact (Python 3.13)
+  #      uses: actions/download-artifact@v4
+  #      with:
+  #        name: coverage
+  #        path: .
+  #
+  #    - name: 📥 Download coverage artifact (Python 3.13)
+  #      uses: actions/download-artifact@v4
+  #      with:
+  #        name: junit
+  #        path: .
+  #
+  #    - name: 📤 Upload coverage to Codecov
+  #      uses: codecov/codecov-action@v5
+  #      with:
+  #        token: ${{ secrets.CODECOV_TOKEN }}
+  #        #slug: goabonga/release-lab
+  #        #files: coverage.xml
+  #        flags: v${{ needs.bump_and_build.outputs.version }}
+  #        name: v${{ needs.bump_and_build.outputs.version }}
+  #
+  #    - name: 📤 Upload test results to Codecov
+  #      uses: codecov/test-results-action@v1
+  #      with:
+  #        token: ${{ secrets.CODECOV_TOKEN }}
+  #        #slug: goabonga/release-lab
+  #        #files: junit.xml
+  #        flags: v${{ needs.bump_and_build.outputs.version }}
+  #        name: v${{ needs.bump_and_build.outputs.version }}
 
   github_release:
     name: Create GitHub Release

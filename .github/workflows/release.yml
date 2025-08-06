@@ -53,8 +53,15 @@ jobs:
         run: poetry run mypy src/ tests/
 
       - name: 🔄 Temporary bump for tests
-        run: poetry run cz bump --yes --files-only
-        continue-on-error: true
+        run: |
+          if poetry run cz bump --yes --files-only; then
+            echo "Version bump needed."
+          else
+            echo "No version bump needed."
+            exit 0
+          fi      
+        #run: poetry run cz bump --yes --files-only
+        #continue-on-error: true
 
       - name: 🧪 Run tests
         id: run_tests
@@ -152,6 +159,12 @@ jobs:
           VERSION=$(poetry version -s)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
+      - name: 📦 Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release
+          path: .
+
   build_and_tag:
     name: Build & Tag
     runs-on: ubuntu-latest
@@ -162,6 +175,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: 📥 Download coverage artifact (Python 3.13)
+        uses: actions/download-artifact@v4
+        with:
+          name: release
+          path: .
+
 
       - name: 🐍 Setup Python
         uses: actions/setup-python@v5

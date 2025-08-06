@@ -292,6 +292,21 @@ jobs:
       - name: 📦 Install dependencies
         run: poetry install --with dev
 
+      - name: 🔑 Import GPG key
+        run: |
+          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+          git config --global user.signingkey "$(gpg --list-secret-keys --keyid-format=LONG | grep sec | awk '{print $2}' | cut -d/ -f2)"
+          git config --global commit.gpgsign true
+          git config --global tag.gpgSign true
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+
+      - name: 🔓 Unlock GPG key
+        run: |
+          echo "test" | gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --pinentry-mode loopback -s >/dev/null
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+
       - name: 🔧 Configure Git user
         run: |
           git config --global user.name "Chris"

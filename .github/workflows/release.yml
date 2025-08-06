@@ -329,6 +329,7 @@ jobs:
           cd gh-pages
           git add .
           git commit -S -m "docs: publish docs for v${{ needs.bump_and_build.outputs.version }}"
+          git remote set-url origin https://goabonga:${GH_TOKEN}@github.com/goabonga/release-lab.git
           git push origin gh-pages
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}

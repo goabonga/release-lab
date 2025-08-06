@@ -20,7 +20,8 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
-
+    outputs:
+      bump_made: ${{ steps.bump_check.outputs.bump_made }}
     steps:
       - name: ⬇️ Checkout
         uses: actions/checkout@v4
@@ -53,51 +54,51 @@ jobs:
         run: poetry run mypy src/ tests/
 
       - name: 🔄 Temporary bump for tests
+        id: bump_check
         run: |
           if poetry run cz bump --yes --files-only; then
-            echo "Version bump needed."
+            echo "bump_made=true" >> "$GITHUB_OUTPUT"
           else
-            echo "No version bump needed."
+            echo "bump_made=false" >> "$GITHUB_OUTPUT"
             exit 0
-          fi      
-        #run: poetry run cz bump --yes --files-only
-        #continue-on-error: true
-
+          fi
+          
       - name: 🧪 Run tests
         id: run_tests
         run: poetry run pytest --cov
 
       - name: 📤 Upload coverage reports to Codecov
-        if: matrix.python-version == '3.13' && steps.run_tests.outcome == 'success'
+        if: matrix.python-version == '3.13' && steps.run_tests.outcome == 'success' && steps.bump_check.outputs.bump_made == 'false'
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: goabonga/release-lab
 
       - name: 📤 Upload test results to Codecov
-        if: matrix.python-version == '3.13' && steps.run_tests.outcome == 'success'
+        if: matrix.python-version == '3.13' && steps.run_tests.outcome == 'success' && steps.bump_check.outputs.bump_made == 'false'
         uses: codecov/test-results-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: 📦 Upload coverage report as artifact
-        if: matrix.python-version == '3.13' && steps.run_tests.outcome == 'success'
+        if: matrix.python-version == '3.13' && steps.run_tests.outcome == 'success' && steps.bump_check.outputs.bump_made == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: coverage
           path: coverage.xml
 
       - name: 📦 Upload junit report as artifact
-        if: matrix.python-version == '3.13' && steps.run_tests.outcome == 'success'
+        if: matrix.python-version == '3.13' && steps.run_tests.outcome == 'success' && steps.bump_check.outputs.bump_made == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: junit
           path: junit.xml
 
-  bump_version:
-    name: Bump version
+  bump_and_build:
+    name: Bump version and build package
     runs-on: ubuntu-latest
     needs: test
+    if: needs.test.outputs.bump_made == 'true'
     outputs:
       bump_made: ${{ steps.bump_check.outputs.bump_made }}
       version: ${{ steps.get_version.outputs.version }}
@@ -106,6 +107,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          fetch-tags: true
 
       - name: 🔑 Import GPG key
         run: |
@@ -122,6 +124,11 @@ jobs:
         env:
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
+      - name: 🔧 Configure Git user
+        run: |
+          git config --global user.name "Chris"
+          git config --global user.email "goabonga@pm.me"
+
       - name: 🐍 Setup Python
         uses: actions/setup-python@v5
         with:
@@ -134,11 +141,6 @@ jobs:
 
       - name: 📦 Install dependencies
         run: poetry install --with dev
-
-      - name: 🔧 Configure Git user
-        run: |
-          git config --global user.name "Chris"
-          git config --global user.email "goabonga@pm.me"
 
       - name: 🚀 Bump version with Commitizen
         id: bump_check
@@ -159,43 +161,43 @@ jobs:
           VERSION=$(poetry version -s)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: 📦 Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: release
-          path: .
-
-  build_and_tag:
-    name: Build & Tag
-    runs-on: ubuntu-latest
-    needs: bump_version
-    if: needs.bump_version.outputs.bump_made == 'true'
-    steps:
-      - name: ⬇️ Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: 📥 Download coverage artifact (Python 3.13)
-        uses: actions/download-artifact@v4
-        with:
-          name: release
-          path: .
-
-
-      - name: 🐍 Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: 🛠️ Install Poetry
-        uses: abatilo/actions-poetry@v3
-        with:
-          poetry-version: "1.8.2"
-
-      - name: 📦 Install dependencies
-        run: poetry install --with dev
-
+#      - name: 📦 Upload artifact
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: release
+#          path: .
+#
+#  build_and_tag:
+#    name: Build & Tag
+#    runs-on: ubuntu-latest
+#    needs: bump_version
+#    if: needs.bump_version.outputs.bump_made == 'true'
+#    steps:
+#      - name: ⬇️ Checkout
+#        uses: actions/checkout@v4
+#        with:
+#          fetch-depth: 0
+#
+#      - name: 📥 Download coverage artifact (Python 3.13)
+#        uses: actions/download-artifact@v4
+#        with:
+#          name: release
+#          path: .
+#
+#
+#      - name: 🐍 Setup Python
+#        uses: actions/setup-python@v5
+#        with:
+#          python-version: "3.11"
+#
+#      - name: 🛠️ Install Poetry
+#        uses: abatilo/actions-poetry@v3
+#        with:
+#          poetry-version: "1.8.2"
+#
+#      - name: 📦 Install dependencies
+#        run: poetry install --with dev
+#
       - name: 🧱 Build distribution
         run: poetry build
 
@@ -224,8 +226,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: 
       - test
-      - bump_version
-    if: needs.bump_version.outputs.bump_made == 'true'
+      - bump_and_build
+    if: needs.bump_and_build.outputs.bump_made == 'true'
     steps:
       - name: 📥 Download coverage artifact (Python 3.13)
         uses: actions/download-artifact@v4
@@ -245,8 +247,8 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: goabonga/release-lab
           files: coverage.xml
-          flags: v${{ needs.bump_version.outputs.version }}
-          name: v${{ needs.bump_version.outputs.version }}
+          flags: v${{ needs.bump_and_build.outputs.version }}
+          name: v${{ needs.bump_and_build.outputs.version }}
 
       - name: 📤 Upload test results to Codecov
         uses: codecov/test-results-action@v1
@@ -254,16 +256,16 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: goabonga/release-lab
           files: junit.xml
-          flags: v${{ needs.bump_version.outputs.version }}
-          name: v${{ needs.bump_version.outputs.version }}
+          flags: v${{ needs.bump_and_build.outputs.version }}
+          name: v${{ needs.bump_and_build.outputs.version }}
 
   github_release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
     #needs: bump_and_build
     #if: needs.bump_and_build.outputs.bump_made == 'true'
-    needs: build_and_tag
-    if: needs.bump_version.outputs.bump_made == 'true'
+    needs: bump_and_build
+    if: needs.bump_and_build.outputs.bump_made == 'true'
     steps:
       - name: 📥 Download build artifacts
         uses: actions/download-artifact@v4
@@ -294,7 +296,7 @@ jobs:
     #needs: github_release
     #if: needs.bump_and_build.outputs.bump_made == 'true'
     needs: github_release
-    if: needs.bump_version.outputs.bump_made == 'true'
+    if: needs.bump_and_build.outputs.bump_made == 'true'
     steps:
       - name: ⬇️ Checkout
         uses: actions/checkout@v4
@@ -337,7 +339,7 @@ jobs:
     #needs: github_release
     #if: needs.bump_and_build.outputs.bump_made == 'true'
     needs: github_release
-    if: needs.bump_version.outputs.bump_made == 'true'
+    if: needs.bump_and_build.outputs.bump_made == 'true'
     #environment:
     #  name: pypi
     #  url: https://pypi.org/p/release-lab

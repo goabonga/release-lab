@@ -312,17 +312,34 @@ jobs:
           git config --global user.name "Chris"
           git config --global user.email "goabonga@pm.me"
 
+      - name: 🏗️ Build docs with MkDocs
+        run: poetry run mkdocs build
+
+      - name: 📂 Clone gh-pages branch
+        run: |
+          git clone --depth=1 --branch gh-pages https://github.com/${{ github.repository }} gh-pages
+          rm -rf gh-pages/*
+          cp -r site/* gh-pages/
+          touch gh-pages/.nojekyll
+
+      - name: ✅ Commit & push signed docs
+        run: |
+          cd gh-pages
+          git add .
+          git commit -S -m "docs: publish docs for v${{ needs.bump_and_build.outputs.version }}"
+          git push origin gh-pages
+
       #- name: 🏷️ Get current tag
       #  id: tag
       #  run: |
       #    TAG=$(git describe --tags --abbrev=0)
       #    echo "TAG=${TAG}" >> $GITHUB_ENV
 
-      - name: 📚 Deploy MkDocs to GitHub Pages
-        run: poetry run mkdocs gh-deploy --force
-        env:
-          DOC_VERSION: ${{ needs.bump_and_build.outputs.version }}
-        #  DOC_VERSION: ${{ env.TAG }}
+      #- name: 📚 Deploy MkDocs to GitHub Pages
+      #  run: poetry run mkdocs gh-deploy --force
+      #  env:
+      #    DOC_VERSION: ${{ needs.bump_and_build.outputs.version }}
+      #  #  DOC_VERSION: ${{ env.TAG }}
 
   publish_testpypi:
     name: Publish to PyPI

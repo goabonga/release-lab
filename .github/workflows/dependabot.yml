@@ -52,29 +52,19 @@ jobs:
           git fetch origin main
           BASE=$(git merge-base HEAD origin/main)
           echo "🔁 Rebase from: $BASE"
-
           export GIT_SEQUENCE_EDITOR="sed -i 's/^pick /edit /'"
-
           git rebase -i "$BASE" || true
-
           while [ -d ".git/rebase-merge" ] || [ -d ".git/rebase-apply" ]; do
             echo "🔏 Amending current commit with GPG and author..."
-            git commit --amend --no-edit --reset-author --gpg-sign
+            git commit --amend --no-edit --reset-author -S
+            git commit --amend --no-edit -S
             git rebase --continue || true
           done
-
-      - name: 🕵️‍♂️ Debug who is pushing
-        run: |
-          curl -H "Authorization: token $GH_TOKEN" https://api.github.com/user
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: 🚀 Force push changes
         run: |
           git remote set-url origin https://goabonga:${GH_TOKEN}@github.com/goabonga/release-lab.git
-          echo "✅ Rebase terminé. Pushing to origin $BRANCH_NAME"
           git push origin HEAD:$BRANCH_NAME --force-with-lease
-
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           BRANCH_NAME: ${{ github.head_ref }}

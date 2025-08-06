@@ -244,17 +244,19 @@ jobs:
           name: release-files
           path: .
 
-      - name: 🏷️ Get version from dist
-        id: get_version
-        run: |
-          VERSION=$(ls dist | grep -oP 'release_lab-\K[0-9]+\.[0-9]+\.[0-9]+'| head -n 1)
-          echo "VERSION=${VERSION}" >> "$GITHUB_OUTPUT"
+      #- name: 🏷️ Get version from dist
+      #  id: get_version
+      #  run: |
+      #    VERSION=$(ls dist | grep -oP 'release_lab-\K[0-9]+\.[0-9]+\.[0-9]+'| head -n 1)
+      #    echo "VERSION=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: 🚀 Create GitHub release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ steps.get_version.outputs.VERSION }}
-          name: Release v${{ steps.get_version.outputs.VERSION }}
+          #tag_name: v${{ steps.get_version.outputs.VERSION }}
+          #name: Release v${{ steps.get_version.outputs.VERSION }}
+          tag_name: v${{ needs.bump_and_build.outputs.version }}
+          name: Release v${{ needs.bump_and_build.outputs.version }}
           body_path: LATEST_CHANGELOG.md
           files: |
             dist/*
@@ -266,7 +268,9 @@ jobs:
     runs-on: ubuntu-latest
     #needs: github_release
     #if: needs.bump_and_build.outputs.bump_made == 'true'
-    needs: github_release
+    needs: 
+      - github_release
+      - bump_and_build
     if: needs.bump_and_build.outputs.bump_made == 'true'
     steps:
       - name: ⬇️ Checkout
@@ -293,16 +297,17 @@ jobs:
           git config --global user.name "Chris"
           git config --global user.email "goabonga@pm.me"
 
-      - name: 🏷️ Get current tag
-        id: tag
-        run: |
-          TAG=$(git describe --tags --abbrev=0)
-          echo "TAG=${TAG}" >> $GITHUB_ENV
+      #- name: 🏷️ Get current tag
+      #  id: tag
+      #  run: |
+      #    TAG=$(git describe --tags --abbrev=0)
+      #    echo "TAG=${TAG}" >> $GITHUB_ENV
 
       - name: 📚 Deploy MkDocs to GitHub Pages
         run: poetry run mkdocs gh-deploy --force
         env:
-          DOC_VERSION: ${{ env.TAG }}
+          DOC_VERSION: ${{ needs.bump_and_build.outputs.version }}
+        #  DOC_VERSION: ${{ env.TAG }}
 
   publish_testpypi:
     name: Publish to PyPI

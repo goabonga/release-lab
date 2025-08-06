@@ -218,8 +218,8 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           #slug: goabonga/release-lab
           #files: coverage.xml
-          override_branch: v${{ needs.bump_and_build.outputs.version }}
-          #name: v${{ needs.bump_and_build.outputs.version }}
+          flags: v${{ needs.bump_and_build.outputs.version }}
+          name: v${{ needs.bump_and_build.outputs.version }}
 
       - name: 📤 Upload test results to Codecov
         uses: codecov/test-results-action@v1
@@ -227,8 +227,8 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           #slug: goabonga/release-lab
           #files: junit.xml
-          override_branch: v${{ needs.bump_and_build.outputs.version }}
-          #name: v${{ needs.bump_and_build.outputs.version }}
+          flags: v${{ needs.bump_and_build.outputs.version }}
+          name: v${{ needs.bump_and_build.outputs.version }}
 
   github_release:
     name: Create GitHub Release

@@ -51,30 +51,17 @@ jobs:
         run: |
           git fetch origin main
           BASE=$(git merge-base HEAD origin/main)
-
           echo "🔁 Rebase from: $BASE"
+
           export GIT_SEQUENCE_EDITOR="sed -i 's/^pick /edit /'"
 
-          git rebase -i "$BASE"
+          git rebase -i "$BASE" || true
 
-          while [ -f .git/rebase-merge ]; do
-            echo "🔏 Amending commit..."
+          while [ -d ".git/rebase-merge" ] || [ -d ".git/rebase-apply" ]; do
+            echo "🔏 Amending current commit with GPG and author..."
             git commit --amend --no-edit --reset-author --gpg-sign
             git rebase --continue || true
           done
-
-
-#        run: |
-#          git config --global sequence.editor 'sed -i "s/^pick /edit /"'
-#          git fetch origin main
-#
-#          BASE=$(git merge-base HEAD origin/main)
-#
-#          git rebase -i $BASE
-#
-#          while ! git rebase --continue 2>/dev/null; do
-#            git commit --amend --no-edit --reset-author --gpg-sign
-#          done
 
       - name: 🚀 Force push changes
         run: |

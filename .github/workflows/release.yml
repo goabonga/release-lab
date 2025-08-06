@@ -137,7 +137,7 @@ jobs:
           python-version: "3.11"
 
       - name: 🛠️ Install Poetry
-        uses: abatilo/actions-poetry@v3
+        uses: abatilo/actions-poetry@v4
         with:
           poetry-version: "2.1.1"
 

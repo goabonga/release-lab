@@ -63,6 +63,12 @@ jobs:
             git rebase --continue || true
           done
 
+      - name: 🕵️‍♂️ Debug who is pushing
+        run: |
+          curl -H "Authorization: token $GH_TOKEN" https://api.github.com/user
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
       - name: 🚀 Force push changes
         run: |
           git remote set-url origin https://goabonga:${GH_TOKEN}@github.com/goabonga/release-lab.git

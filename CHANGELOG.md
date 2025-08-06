@@ -1,3 +1,9 @@
+## v0.18.0 (2025-08-06)
+
+### Feat
+
+- test to publish a new release
+
 ## v0.17.0 (2025-08-06)
 
 ### Feat

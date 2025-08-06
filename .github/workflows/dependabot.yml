@@ -52,12 +52,25 @@ jobs:
           git fetch origin main
 
           BASE=$(git merge-base HEAD origin/main)
+          echo "🔁 Rebase from base commit: $BASE"
+          git rebase -i $BASE &
 
-          git rebase -i $BASE
-
-          while ! git rebase --continue 2>/dev/null; do
+          while git rebase --show-current-patch > /dev/null 2>&1; do
+            echo "🔏 Signing current commit..."
             git commit --amend --no-edit --reset-author --gpg-sign
+            git rebase --continue || true
           done
+#        run: |
+#          git config --global sequence.editor 'sed -i "s/^pick /edit /"'
+#          git fetch origin main
+#
+#          BASE=$(git merge-base HEAD origin/main)
+#
+#          git rebase -i $BASE
+#
+#          while ! git rebase --continue 2>/dev/null; do
+#            git commit --amend --no-edit --reset-author --gpg-sign
+#          done
 
       - name: 🚀 Force push changes
         run: |

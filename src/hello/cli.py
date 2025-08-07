@@ -1,9 +1,12 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2025 Chris <goabonga@pm.me>
+
 import click
 
 
 @click.command()
 @click.argument("name", required=False)
-def main(name: str | None = None):
+def main(name: str | None = None) -> None:
     """
     Print a greeting.
 

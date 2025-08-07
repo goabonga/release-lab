@@ -69,32 +69,15 @@ jobs:
 
       - name: 📤 Upload coverage reports to Codecov
         if: matrix.python-version == '3.13' && steps.run_tests.outcome == 'success' 
-        #&& steps.bump_check.outputs.bump_made == 'false'
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          #slug: goabonga/release-lab
 
       - name: 📤 Upload test results to Codecov
         if: matrix.python-version == '3.13' && steps.run_tests.outcome == 'success' 
-        #&& steps.bump_check.outputs.bump_made == 'false'
         uses: codecov/test-results-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-
-      #- name: 📦 Upload coverage report as artifact
-      #  if: matrix.python-version == '3.13' && steps.run_tests.outcome == 'success' && steps.bump_check.outputs.bump_made == 'true'
-      #  uses: actions/upload-artifact@v4
-      #  with:
-      #    name: coverage
-      #    path: coverage.xml
-      #
-      #- name: 📦 Upload junit report as artifact
-      #  if: matrix.python-version == '3.13' && steps.run_tests.outcome == 'success' && steps.bump_check.outputs.bump_made == 'true'
-      #  uses: actions/upload-artifact@v4
-      #  with:
-      #    name: junit
-      #    path: junit.xml
 
   bump_and_build:
     name: Bump version and build package
@@ -114,9 +97,6 @@ jobs:
       - name: 🔑 Import GPG key
         run: |
           echo "$GPG_PRIVATE_KEY" | gpg --batch --import
-          git config --global user.signingkey "$(gpg --list-secret-keys --keyid-format=LONG | grep sec | awk '{print $2}' | cut -d/ -f2)"
-          git config --global commit.gpgsign true
-          git config --global tag.gpgSign true
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
 
@@ -130,6 +110,9 @@ jobs:
         run: |
           git config --global user.name "Chris"
           git config --global user.email "goabonga@pm.me"
+          git config --global user.signingkey "$(gpg --list-secret-keys --keyid-format=LONG | grep sec | awk '{print $2}' | cut -d/ -f2)"
+          git config --global commit.gpgsign true
+          git config --global tag.gpgSign true
 
       - name: 🐍 Setup Python
         uses: actions/setup-python@v5
@@ -186,55 +169,9 @@ jobs:
             dist/*
             LATEST_CHANGELOG.md
 
-  #codecov_tag:
-  #  name: Upload coverage to Codecov (tag)
-  #  runs-on: ubuntu-latest
-  #  needs: 
-  #    - test
-  #    - bump_and_build
-  #  if: needs.bump_and_build.outputs.bump_made == 'true'
-  #  steps:
-  #    - name: ⬇️ Checkout
-  #      uses: actions/checkout@v4
-  #      with:
-  #        fetch-depth: 0
-  #        fetch-tags: true
-  #
-  #    - name: 📥 Download coverage artifact (Python 3.13)
-  #      uses: actions/download-artifact@v5
-  #      with:
-  #        name: coverage
-  #        path: .
-  #
-  #    - name: 📥 Download coverage artifact (Python 3.13)
-  #      uses: actions/download-artifact@v5
-  #      with:
-  #        name: junit
-  #        path: .
-  #
-  #    - name: 📤 Upload coverage to Codecov
-  #      uses: codecov/codecov-action@v5
-  #      with:
-  #        token: ${{ secrets.CODECOV_TOKEN }}
-  #        #slug: goabonga/release-lab
-  #        #files: coverage.xml
-  #        flags: v${{ needs.bump_and_build.outputs.version }}
-  #        name: v${{ needs.bump_and_build.outputs.version }}
-  #
-  #    - name: 📤 Upload test results to Codecov
-  #      uses: codecov/test-results-action@v1
-  #      with:
-  #        token: ${{ secrets.CODECOV_TOKEN }}
-  #        #slug: goabonga/release-lab
-  #        #files: junit.xml
-  #        flags: v${{ needs.bump_and_build.outputs.version }}
-  #        name: v${{ needs.bump_and_build.outputs.version }}
-
   github_release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
-    #needs: bump_and_build
-    #if: needs.bump_and_build.outputs.bump_made == 'true'
     needs: bump_and_build
     if: needs.bump_and_build.outputs.bump_made == 'true'
     steps:
@@ -244,17 +181,9 @@ jobs:
           name: release-files
           path: .
 
-      #- name: 🏷️ Get version from dist
-      #  id: get_version
-      #  run: |
-      #    VERSION=$(ls dist | grep -oP 'release_lab-\K[0-9]+\.[0-9]+\.[0-9]+'| head -n 1)
-      #    echo "VERSION=${VERSION}" >> "$GITHUB_OUTPUT"
-
       - name: 🚀 Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          #tag_name: v${{ steps.get_version.outputs.VERSION }}
-          #name: Release v${{ steps.get_version.outputs.VERSION }}
           tag_name: v${{ needs.bump_and_build.outputs.version }}
           name: Release v${{ needs.bump_and_build.outputs.version }}
           body_path: LATEST_CHANGELOG.md
@@ -266,8 +195,6 @@ jobs:
   deploy_docs:
     name: Deploy MkDocs
     runs-on: ubuntu-latest
-    #needs: github_release
-    #if: needs.bump_and_build.outputs.bump_made == 'true'
     needs: 
       - github_release
       - bump_and_build
@@ -295,9 +222,6 @@ jobs:
       - name: 🔑 Import GPG key
         run: |
           echo "$GPG_PRIVATE_KEY" | gpg --batch --import
-          git config --global user.signingkey "$(gpg --list-secret-keys --keyid-format=LONG | grep sec | awk '{print $2}' | cut -d/ -f2)"
-          git config --global commit.gpgsign true
-          git config --global tag.gpgSign true
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
 
@@ -311,6 +235,9 @@ jobs:
         run: |
           git config --global user.name "Chris"
           git config --global user.email "goabonga@pm.me"
+          git config --global user.signingkey "$(gpg --list-secret-keys --keyid-format=LONG | grep sec | awk '{print $2}' | cut -d/ -f2)"
+          git config --global commit.gpgsign true
+          git config --global tag.gpgSign true
 
       - name: 🏗️ Build docs with MkDocs
         run: poetry run mkdocs build
@@ -333,23 +260,10 @@ jobs:
           git push origin gh-pages
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-      #- name: 🏷️ Get current tag
-      #  id: tag
-      #  run: |
-      #    TAG=$(git describe --tags --abbrev=0)
-      #    echo "TAG=${TAG}" >> $GITHUB_ENV
 
-      #- name: 📚 Deploy MkDocs to GitHub Pages
-      #  run: poetry run mkdocs gh-deploy --force
-      #  env:
-      #    DOC_VERSION: ${{ needs.bump_and_build.outputs.version }}
-      #  #  DOC_VERSION: ${{ env.TAG }}
-
-  publish_testpypi:
+  publish_pypi:
     name: Publish to PyPI
     runs-on: ubuntu-latest
-    #needs: github_release
-    #if: needs.bump_and_build.outputs.bump_made == 'true'
     needs: github_release
     if: needs.bump_and_build.outputs.bump_made == 'true'
     #environment:

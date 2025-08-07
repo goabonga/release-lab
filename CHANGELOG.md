@@ -1,3 +1,9 @@
+## v0.22.1 (2025-08-07)
+
+### Fix
+
+- use global env var into release pipeline
+
 ## v0.22.0 (2025-08-07)
 
 ### Feat

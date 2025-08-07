@@ -1,3 +1,9 @@
+## v0.22.0 (2025-08-07)
+
+### Feat
+
+- cleaning up the release workflow
+
 ## v0.21.3 (2025-08-06)
 
 ### Fix

@@ -1,10 +1,9 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Chris <goabonga@pm.me>
 
-from hello.cli import main
-
 from click.testing import CliRunner
-from os import abort
+
+from hello.cli import main
 
 
 def test_hello_default() -> None:

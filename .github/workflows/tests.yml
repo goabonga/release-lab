@@ -6,6 +6,12 @@ name: Pull Request Test & Lint
 on:
   pull_request:
 
+permissions:
+  pull-requests: write
+
+env:
+  POETRY_VERSION: "2.1.1"
+
 jobs:
   test:
     name: Test and Lint (Python ${{ matrix.python-version }})
@@ -27,21 +33,77 @@ jobs:
       - name: 🛠️ Install Poetry
         uses: abatilo/actions-poetry@v4
         with:
-          poetry-version: "2.1.1"
+          poetry-version: ${{ env.POETRY_VERSION }}
 
       - name: 📦 Install dependencies
         run: poetry install --with dev
 
-      - name: 🔍 Checking SPDX license headers
+      - name: 📝 Init summary file
+        run: echo "## 🧪 Linting Summary for Python ${{ matrix.python-version }}" > lint_summary.md
+
+      - name: 📜 Check SPDX license headers
+        id: spdx_check
+        continue-on-error: true
         run: |
-          poetry run python ./scripts/add_license_header.py --path src --types py --check
-          poetry run python ./scripts/add_license_header.py --path tests --types py --check
+          if ! poetry run python ./scripts/add_license_header.py --path src --types py --check > spdx_output.txt 2>&1; then
+            echo "### ❌ SPDX headers check failed (src)" >> lint_summary.md
+            echo "\`\`\`" >> lint_summary.md
+            cat spdx_output.txt >> lint_summary.md
+            echo "\`\`\`" >> lint_summary.md
+            echo "SPDX_FAILED=true" >> $GITHUB_ENV
+          fi
+
+          if ! poetry run python ./scripts/add_license_header.py --path tests --types py --check > spdx_output_tests.txt 2>&1; then
+            echo "### ❌ SPDX headers check failed (tests)" >> lint_summary.md
+            echo "\`\`\`" >> lint_summary.md
+            cat spdx_output_tests.txt >> lint_summary.md
+            echo "\`\`\`" >> lint_summary.md
+            echo "SPDX_FAILED=true" >> $GITHUB_ENV
+          fi
 
       - name: 🧹 Check import sorting with isort
-        run: poetry run isort . --check-only --diff
+        id: isort_check
+        continue-on-error: true
+        run: |
+          if ! poetry run isort . --check-only --diff > isort_output.txt; then
+            echo "### ❌ isort failed" >> lint_summary.md
+            echo "\`\`\`" >> lint_summary.md
+            cat isort_output.txt >> lint_summary.md
+            echo "\`\`\`" >> lint_summary.md
+            echo "ISORT_FAILED=true" >> $GITHUB_ENV
+          fi
+
+      - name: 🐶 Check lint with ruff
+        id: ruff_check
+        continue-on-error: true
+        run: |
+          if ! poetry run ruff check . > ruff_output.txt; then
+            echo "### ❌ ruff failed" >> lint_summary.md
+            echo "\`\`\`" >> lint_summary.md
+            cat ruff_output.txt >> lint_summary.md
+            echo "\`\`\`" >> lint_summary.md
+            echo "RUFF_FAILED=true" >> $GITHUB_ENV
+          fi
 
       - name: 🔎 Type check with MyPy
-        run: poetry run mypy src/ tests/
+        id: mypy_check
+        continue-on-error: true
+        run: |
+          if ! poetry run mypy src/ tests/ > mypy_output.txt; then
+            echo "### ❌ mypy failed" >> lint_summary.md
+            echo "\`\`\`" >> lint_summary.md
+            cat mypy_output.txt >> lint_summary.md
+            echo "\`\`\`" >> lint_summary.md
+            echo "MYPY_FAILED=true" >> $GITHUB_ENV
+          fi
+
+      - name: 💬 Comment lint failures
+        if: env.SPDX_FAILED == 'true' || env.ISORT_FAILED == 'true' || env.RUFF_FAILED == 'true' || env.MYPY_FAILED == 'true'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body-path: lint_summary.md
 
       - name: 🧪 Run tests
         id: run_tests

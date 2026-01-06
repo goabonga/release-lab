@@ -1,0 +1,6 @@
+# Poetry configuration file
+# This file configures Poetry to create virtual environments inside the project directory
+
+[virtualenvs]
+# Create virtual environments in the project's .venv directory instead of a centralized location
+in-project = true

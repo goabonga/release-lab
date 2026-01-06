@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Chris <goabonga@pm.me>
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 
 # Create FastAPI application instance
 app = FastAPI(
@@ -13,14 +13,14 @@ app = FastAPI(
 
 # Define GET route on root path
 @app.get("/")
-async def read_root():
+async def read_root() -> Response:
     """
     Welcome endpoint that returns a greeting message
 
     Returns:
-        dict: A dictionary containing the welcome message
+        Response: A Response object containing the welcome message
     """
-    return {"message": "Hello FastAPI!"}
+    return Response(content='{"message": "Hello FastAPI!"}', media_type="application/json")
 
 
 # Run the application (for development)

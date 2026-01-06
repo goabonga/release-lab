@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from hello.app import app
 
 
-def test_read_root():
+def test_read_root() -> None:
     client = TestClient(app)
     response = client.get("/")
     assert response.status_code == 200

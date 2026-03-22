@@ -107,12 +107,23 @@ jobs:
           echo "### ✅ All checks passed" >> lint_summary.md
 
       - name: 💬 Comment lint results
-        uses: peter-evans/create-or-update-comment@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          issue-number: ${{ github.event.pull_request.number }}
-          body-includes: "<!-- lint-summary-py${{ matrix.python-version }} -->"
-          body-path: lint_summary.md
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          MARKER="<!-- lint-summary-py${{ matrix.python-version }} -->"
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          BODY=$(cat lint_summary.md)
+
+          COMMENT_ID=$(gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
+            --paginate --jq ".[] | select(.body | contains(\"${MARKER}\")) | .id" | head -1)
+
+          if [ -n "$COMMENT_ID" ]; then
+            gh api "repos/${{ github.repository }}/issues/comments/${COMMENT_ID}" \
+              -X PATCH -f body="$BODY"
+          else
+            gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
+              -f body="$BODY"
+          fi
 
       - name: 🧪 Run tests
         id: run_tests

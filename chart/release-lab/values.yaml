@@ -1,0 +1,15 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/goabonga/release-lab
+  pullPolicy: IfNotPresent
+  tag: ""
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  name: ""
+
+resources: {}

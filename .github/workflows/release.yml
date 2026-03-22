@@ -10,90 +10,105 @@ on:
 permissions:
   contents: write
   id-token: write
+  packages: write
 
 env:
-  GH_USERNAME: Chris
-  GH_EMAIL: goabonga@pm.me
-  GH_REPO_URL: https://goabonga:${{ secrets.GH_TOKEN }}@github.com/goabonga/release-lab.git
+  GH_USERNAME: ${{ github.event.head_commit.author.name }}
+  GH_EMAIL: ${{ github.event.head_commit.author.email }}
+  GH_REPO_URL: https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/goabonga/release-lab.git
   PYTHON_DEFAULT_VERSION: "3.11"
   POETRY_VERSION: "2.1.1"
 
 jobs:
 
-  test:
-    name: Test and Lint (Python ${{ matrix.python-version }})
+  # ============================================
+  # Check if this is a release commit
+  # ============================================
+  check-release-commit:
+    name: Check Release Commit
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
     outputs:
-      bump_made: ${{ steps.bump_check.outputs.bump_made }}
+      is_release: ${{ steps.check.outputs.is_release }}
+      is_stable: ${{ steps.check.outputs.is_stable }}
     steps:
-      - name: ⬇️ Checkout
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-          fetch-tags: true
-
-      - name: 🐍 Setup Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: 🛠️ Install Poetry
-        uses: abatilo/actions-poetry@v4
-        with:
-          poetry-version: ${{ env.POETRY_VERSION }}
-
-      - name: 📦 Install dependencies
-        run: poetry install --with dev
-
-      - name: 🔍 Checking SPDX license headers
+      - name: 🔍 Check commit message
+        id: check
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
-          poetry run python ./scripts/add_license_header.py --path src --types py --check
-          poetry run python ./scripts/add_license_header.py --path tests --types py --check
-
-      - name: 🧹 Check import sorting with isort
-        run: poetry run isort . --check-only --diff
-
-      - name: 🔎 Type check with MyPy
-        run: poetry run mypy src/ tests/
-
-      - name: 🔄 Temporary bump for tests
-        id: bump_check
-        run: |
-          if poetry run cz bump --yes --files-only; then
-            echo "bump_made=true" >> "$GITHUB_OUTPUT"
+          if [[ "$COMMIT_MSG" =~ ^chore\(release\): ]]; then
+            echo "is_release=true" >> $GITHUB_OUTPUT
+            if [[ "$COMMIT_MSG" =~ stable ]]; then
+              echo "is_stable=true" >> $GITHUB_OUTPUT
+              echo "Stable release detected: will bump major version"
+            else
+              echo "is_stable=false" >> $GITHUB_OUTPUT
+            fi
           else
-            echo "bump_made=false" >> "$GITHUB_OUTPUT"
-            exit 0
+            echo "is_release=false" >> $GITHUB_OUTPUT
+            echo "is_stable=false" >> $GITHUB_OUTPUT
+            echo "Skipping: commit does not match 'chore(release): ...'"
           fi
-          
-      - name: 🧪 Run tests
-        id: run_tests
-        run: poetry run pytest --cov
 
-      - name: 📤 Upload coverage reports to Codecov
-        if: matrix.python-version == '3.13' && steps.run_tests.outcome == 'success' 
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+  # ============================================
+  # Wait for CI to pass
+  # ============================================
+  wait-for-ci:
+    name: Wait for CI
+    runs-on: ubuntu-latest
+    needs: [check-release-commit]
+    if: needs.check-release-commit.outputs.is_release == 'true'
+    permissions:
+      actions: read
+    steps:
+      - name: ⏳ Wait for CI workflow to complete
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Waiting for CI workflow on commit ${{ github.sha }}..."
+          TIMEOUT=1800
+          INTERVAL=15
+          ELAPSED=0
 
-      - name: 📤 Upload test results to Codecov
-        if: matrix.python-version == '3.13' && steps.run_tests.outcome == 'success' 
-        uses: codecov/test-results-action@v1
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          while [ $ELAPSED -lt $TIMEOUT ]; do
+            RUN_ID=$(gh api "repos/${{ github.repository }}/actions/workflows/tests.yml/runs?head_sha=${{ github.sha }}&per_page=1" --jq '.workflow_runs[0].id // empty')
 
+            if [ -n "$RUN_ID" ]; then
+              STATUS=$(gh api "repos/${{ github.repository }}/actions/runs/$RUN_ID" --jq '.status')
+              CONCLUSION=$(gh api "repos/${{ github.repository }}/actions/runs/$RUN_ID" --jq '.conclusion // empty')
+
+              echo "CI run $RUN_ID: status=$STATUS conclusion=$CONCLUSION (${ELAPSED}s elapsed)"
+
+              if [ "$STATUS" = "completed" ]; then
+                if [ "$CONCLUSION" = "success" ]; then
+                  echo "CI workflow completed successfully!"
+                  exit 0
+                else
+                  echo "CI workflow failed with conclusion: $CONCLUSION"
+                  exit 1
+                fi
+              fi
+            else
+              echo "CI workflow not found yet (${ELAPSED}s elapsed)"
+            fi
+
+            sleep $INTERVAL
+            ELAPSED=$((ELAPSED + INTERVAL))
+          done
+
+          echo "Timeout waiting for CI workflow"
+          exit 1
+
+  # ============================================
+  # Bump version and build package
+  # ============================================
   bump_and_build:
     name: Bump version and build package
     runs-on: ubuntu-latest
-    needs: test
-    if: needs.test.outputs.bump_made == 'true'
+    needs: [check-release-commit, wait-for-ci]
+    if: needs.check-release-commit.outputs.is_release == 'true'
     outputs:
-      bump_made: ${{ steps.bump_check.outputs.bump_made }}
-      version: ${{ steps.get_version.outputs.version }}
+      version: ${{ steps.bump.outputs.version }}
     steps:
       - name: ⬇️ Checkout
         uses: actions/checkout@v5
@@ -125,7 +140,7 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_DEFAULT_VERSION }}
-          
+
       - name: 🛠️ Install Poetry
         uses: abatilo/actions-poetry@v4
         with:
@@ -134,39 +149,50 @@ jobs:
       - name: 📦 Install dependencies
         run: poetry install --with dev
 
-      - name: 🚀 Bump version with Commitizen
-        id: bump_check
+      - name: 🔍 Check for releasable commits
+        id: check
         run: |
-          if poetry run cz bump --yes --changelog; then
-            echo "bump_made=true" >> "$GITHUB_OUTPUT"
+          if poetry run cz bump --dry-run 2>&1 | grep -q "No commits found"; then
+            echo "has_commits=false" >> $GITHUB_OUTPUT
           else
-            echo "No version bump needed."
-            echo "bump_made=false" >> "$GITHUB_OUTPUT"
-            exit 0
+            echo "has_commits=true" >> $GITHUB_OUTPUT
           fi
+        continue-on-error: true
+
+      - name: 🚀 Bump version with Commitizen
+        if: steps.check.outputs.has_commits == 'true'
+        id: bump
+        run: |
+          IS_STABLE="${{ needs.check-release-commit.outputs.is_stable }}"
+          if [ "$IS_STABLE" = "true" ]; then
+            echo "Stable release: bumping major version"
+            poetry run cz bump --increment MAJOR --yes --changelog
+          else
+            poetry run cz bump --yes --changelog
+          fi
+          echo "version=$(poetry version -s)" >> $GITHUB_OUTPUT
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-
-      - name: 📦 Get bumped version
-        id: get_version
-        run: |
-          VERSION=$(poetry version -s)
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+        continue-on-error: true
 
       - name: 🧱 Build distribution
+        if: steps.bump.outputs.version != ''
         run: poetry build
 
       - name: ✂️ Extract latest changelog section
+        if: steps.bump.outputs.version != ''
         run: |
           awk '/^## /{i++} i==1' CHANGELOG.md > LATEST_CHANGELOG.md
 
       - name: 📤 Push version bump and tag
+        if: steps.bump.outputs.version != ''
         run: |
           git remote set-url origin ${{ env.GH_REPO_URL }}
           git push origin HEAD
           git push origin --tags
 
       - name: 📤 Upload build artifacts
+        if: steps.bump.outputs.version != ''
         uses: actions/upload-artifact@v5
         with:
           name: release-files
@@ -174,11 +200,14 @@ jobs:
             dist/*
             LATEST_CHANGELOG.md
 
+  # ============================================
+  # Create GitHub Release
+  # ============================================
   github_release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
     needs: bump_and_build
-    if: needs.bump_and_build.outputs.bump_made == 'true'
+    if: needs.bump_and_build.outputs.version != ''
     steps:
       - name: 📥 Download build artifacts
         uses: actions/download-artifact@v6
@@ -197,13 +226,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
+  # ============================================
+  # Deploy MkDocs
+  # ============================================
   deploy_docs:
     name: Deploy MkDocs
     runs-on: ubuntu-latest
-    needs: 
+    needs:
       - github_release
       - bump_and_build
-    if: needs.bump_and_build.outputs.bump_made == 'true'
+    if: needs.bump_and_build.outputs.version != ''
     steps:
       - name: ⬇️ Checkout
         uses: actions/checkout@v5
@@ -249,10 +281,20 @@ jobs:
         env:
           DOC_VERSION: ${{ needs.bump_and_build.outputs.version }}
 
-      - name: 📂 Clone gh-pages branch
+      - name: 📂 Prepare gh-pages branch
         run: |
-          git clone --depth=1 --branch gh-pages ${{ env.GH_REPO_URL }} gh-pages
-          rm -rf gh-pages/*
+          if git ls-remote --exit-code --heads ${{ env.GH_REPO_URL }} gh-pages > /dev/null 2>&1; then
+            git clone --depth=1 --branch gh-pages ${{ env.GH_REPO_URL }} gh-pages
+            rm -rf gh-pages/*
+          else
+            mkdir gh-pages
+            cd gh-pages
+            git init
+            git checkout --orphan gh-pages
+          fi
+
+      - name: 📄 Copy docs
+        run: |
           cp -r site/* gh-pages/
           touch gh-pages/.nojekyll
 
@@ -261,14 +303,20 @@ jobs:
           cd gh-pages
           git add .
           git commit -S -m "docs: publish docs for v${{ needs.bump_and_build.outputs.version }}"
-          git remote set-url origin ${{ env.GH_REPO_URL }}
+          git remote remove origin 2>/dev/null || true
+          git remote add origin ${{ env.GH_REPO_URL }}
           git push origin gh-pages
 
+  # ============================================
+  # Publish to PyPI
+  # ============================================
   publish_pypi:
     name: Publish to PyPI
     runs-on: ubuntu-latest
-    needs: github_release
-    if: needs.bump_and_build.outputs.bump_made == 'true'
+    needs:
+      - github_release
+      - bump_and_build
+    if: needs.bump_and_build.outputs.version != ''
     environment:
       name: testpypi
       url: https://test.pypi.org/p/release-lab
@@ -286,3 +334,77 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/ # for pypi test
+
+  # ============================================
+  # Publish Docker Image to GHCR
+  # ============================================
+  publish_docker:
+    name: Publish Docker Image
+    runs-on: ubuntu-latest
+    needs:
+      - github_release
+      - bump_and_build
+    if: needs.bump_and_build.outputs.version != ''
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: v${{ needs.bump_and_build.outputs.version }}
+
+      - name: 🔧 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔑 Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🐳 Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/goabonga/release-lab:${{ needs.bump_and_build.outputs.version }}
+            ghcr.io/goabonga/release-lab:latest
+          labels: |
+            org.opencontainers.image.source=https://github.com/goabonga/release-lab
+            org.opencontainers.image.version=${{ needs.bump_and_build.outputs.version }}
+            org.opencontainers.image.title=release-lab
+            org.opencontainers.image.description=A sandbox for testing Python project release workflows
+
+  # ============================================
+  # Publish Helm Chart to GHCR (OCI)
+  # ============================================
+  publish_helm:
+    name: Publish Helm Chart
+    runs-on: ubuntu-latest
+    needs:
+      - github_release
+      - bump_and_build
+    if: needs.bump_and_build.outputs.version != ''
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: v${{ needs.bump_and_build.outputs.version }}
+
+      - name: 🔧 Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: 🔑 Login to GHCR for Helm
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: 📦 Package Helm chart
+        run: helm package chart/release-lab
+
+      - name: 📤 Push Helm chart to GHCR
+        run: helm push release-lab-${{ needs.bump_and_build.outputs.version }}.tgz oci://ghcr.io/goabonga/release-lab-chart

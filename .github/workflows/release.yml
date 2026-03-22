@@ -433,7 +433,7 @@ jobs:
         run: echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: 📦 Package Helm chart
-        run: helm package chart/release-lab
+        run: helm package --app-version ${{ needs.bump_and_build.outputs.version }} chart/release-lab
 
       - name: 📤 Push Helm chart to GHCR
-        run: helm push release-lab-${{ needs.bump_and_build.outputs.version }}.tgz oci://ghcr.io/goabonga/release-lab-chart
+        run: helm push release-lab-*.tgz oci://ghcr.io/goabonga/release-lab-chart

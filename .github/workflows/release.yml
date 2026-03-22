@@ -72,7 +72,7 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: release-files
-          path: dist/*
+          path: dist/
 
   # ============================================
   # Publish to PyPI
@@ -93,7 +93,7 @@ jobs:
         uses: actions/download-artifact@v6
         with:
           name: release-files
-          path: .
+          path: dist/
 
       - name: 📦 Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
@@ -195,7 +195,7 @@ jobs:
 
       - name: 📂 Prepare gh-pages branch
         run: |
-          GH_REPO_URL="https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git"
+          GH_REPO_URL="https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
           if git ls-remote --exit-code --heads "$GH_REPO_URL" gh-pages > /dev/null 2>&1; then
             git clone --depth=1 --branch gh-pages "$GH_REPO_URL" gh-pages
             rm -rf gh-pages/*
@@ -213,7 +213,7 @@ jobs:
 
       - name: ✅ Commit & push signed docs
         run: |
-          GH_REPO_URL="https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git"
+          GH_REPO_URL="https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
           cd gh-pages
           git add .
           git commit -S -m "docs: publish docs for v${{ needs.release-please.outputs.app_version }}"

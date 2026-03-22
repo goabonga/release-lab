@@ -2,6 +2,6 @@ apiVersion: v2
 name: release-lab
 description: Helm chart for the release-lab CLI
 type: application
-version: 0.1.0
+version: 0.2.0
 appVersion: "0.0.0"
 home: https://github.com/goabonga/release-lab

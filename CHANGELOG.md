@@ -19,6 +19,21 @@
 
 - split lint and test into separate jobs
 
+## [0.24.0](https://github.com/goabonga/release-lab/compare/v0.23.0...v0.24.0) (2026-03-22)
+
+
+### Features
+
+* add Dockerfile, Helm chart, Docker/Helm publish jobs, and update README ([18beba6](https://github.com/goabonga/release-lab/commit/18beba63bb9170ecd79575f2ff88892087014934))
+* bump chart version only when chart files change ([2bfa869](https://github.com/goabonga/release-lab/commit/2bfa869ecf9e0908baa16d462e0afd3f1e10591c))
+* decouple chart version from app version ([6810805](https://github.com/goabonga/release-lab/commit/6810805b5089e4dd2fd5a755ee1fb192610122c7))
+* migrate from commitizen to release-please ([22ef9fb](https://github.com/goabonga/release-lab/commit/22ef9fbec274420f9e73a68f3d725cc5953a50aa))
+
+
+### Bug Fixes
+
+* use GITHUB_TOKEN for release-please action ([13f74b3](https://github.com/goabonga/release-lab/commit/13f74b3e90d36fbf4e132b8d43f79b404a43a686))
+
 ## v0.22.1 (2025-08-07)
 
 ### Fix

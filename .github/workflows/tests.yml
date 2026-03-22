@@ -105,6 +105,10 @@ jobs:
           echo "<!-- lint-summary-py${{ matrix.python-version }} -->" > lint_summary.md
           echo "## 🧪 Linting Summary for Python ${{ matrix.python-version }}" >> lint_summary.md
           echo "### ✅ All checks passed" >> lint_summary.md
+          echo "- 📜 SPDX license headers" >> lint_summary.md
+          echo "- 🧹 isort" >> lint_summary.md
+          echo "- 🐶 ruff" >> lint_summary.md
+          echo "- 🔎 mypy" >> lint_summary.md
 
       - name: 💬 Comment lint results
         env:

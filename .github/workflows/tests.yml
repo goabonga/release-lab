@@ -39,7 +39,9 @@ jobs:
         run: poetry install --with dev
 
       - name: 📝 Init summary file
-        run: echo "## 🧪 Linting Summary for Python ${{ matrix.python-version }}" > lint_summary.md
+        run: |
+          echo "<!-- lint-summary-py${{ matrix.python-version }} -->" > lint_summary.md
+          echo "## 🧪 Linting Summary for Python ${{ matrix.python-version }}" >> lint_summary.md
 
       - name: 📜 Check SPDX license headers
         id: spdx_check
@@ -97,12 +99,19 @@ jobs:
             echo "MYPY_FAILED=true" >> $GITHUB_ENV
           fi
 
-      - name: 💬 Comment lint failures
-        if: env.SPDX_FAILED == 'true' || env.ISORT_FAILED == 'true' || env.RUFF_FAILED == 'true' || env.MYPY_FAILED == 'true'
+      - name: 📝 Mark as resolved if all checks passed
+        if: env.SPDX_FAILED != 'true' && env.ISORT_FAILED != 'true' && env.RUFF_FAILED != 'true' && env.MYPY_FAILED != 'true'
+        run: |
+          echo "<!-- lint-summary-py${{ matrix.python-version }} -->" > lint_summary.md
+          echo "## 🧪 Linting Summary for Python ${{ matrix.python-version }}" >> lint_summary.md
+          echo "### ✅ All checks passed" >> lint_summary.md
+
+      - name: 💬 Comment lint results
         uses: peter-evans/create-or-update-comment@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.pull_request.number }}
+          body-includes: "<!-- lint-summary-py${{ matrix.python-version }} -->"
           body-path: lint_summary.md
 
       - name: 🧪 Run tests

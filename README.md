@@ -23,7 +23,7 @@ This lab aims to serve as a base for reusable and reliable infrastructure before
 
 - **Poetry** -- Dependency and packaging management
 - **GitHub Actions** -- CI/CD, test & release workflows
-- **Commitizen** -- Conventional commits and changelog generation
+- **release-please** -- Automated releases with monorepo support (app + Helm chart)
 - **Pytest** -- Testing framework with coverage
 - **MkDocs** -- Documentation generation and deployment
 - **Docker** -- Container image published to GHCR
@@ -47,18 +47,20 @@ On pull requests, lint and test failures are reported as comments on the PR. Com
 
 ### Release (`release.yml`)
 
-Triggered on **push to main**, only for commits matching `chore(release): ...`.
+Triggered on **push to main**. Uses [release-please](https://github.com/googleapis/release-please) with monorepo support for independent versioning of the app and Helm chart.
 
 | Job | Description |
 |-----|-------------|
-| **Check Release Commit** | Validates commit message, detects stable releases |
-| **Wait for CI** | Waits for `tests.yml` to pass before proceeding |
-| **Bump & Build** | Version bump with Commitizen, build distribution |
-| **GitHub Release** | Creates a GitHub release with changelog and artifacts |
-| **Deploy Docs** | Builds and deploys MkDocs to gh-pages |
+| **Release Please** | Creates/updates release PRs, bumps versions, generates changelogs |
+| **Build** | Builds Python distribution (triggered on app release) |
 | **Publish PyPI** | Publishes package to PyPI |
 | **Publish Docker** | Builds and pushes Docker image to GHCR |
-| **Publish Helm** | Packages and pushes Helm chart to GHCR (OCI) |
+| **Deploy Docs** | Builds and deploys MkDocs to gh-pages |
+| **Publish Helm** | Packages and pushes Helm chart to GHCR (triggered on chart release only) |
+
+Two independent components:
+- **`release-lab`** (root) -- Python app, tags: `v0.23.0`
+- **`release-lab-chart`** (`chart/release-lab`) -- Helm chart, tags: `release-lab-chart-v0.1.0`
 
 ---
 
@@ -97,12 +99,14 @@ docker run --rm release-lab World
 helm install release-lab chart/release-lab
 ```
 
-### Prepare a release
+### Release
 
-```bash
-cz bump
-poetry build
-```
+Releases are automated via release-please. Simply push conventional commits to `main`:
+- `feat:` triggers a minor version bump
+- `fix:` triggers a patch version bump
+- `feat!:` or `BREAKING CHANGE:` triggers a major version bump
+
+release-please will create a PR with the version bump and changelog. Merge it to publish.
 
 ---
 

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "separate-pull-requests": true,
+  "packages": {
+    ".": {
+      "release-type": "python",
+      "component": "release-lab",
+      "include-component-in-tag": false,
+      "extra-files": [
+        "src/hello/__init__.py",
+        "tests/test_version.py"
+      ]
+    },
+    "chart/release-lab": {
+      "release-type": "helm",
+      "component": "release-lab-chart",
+      "include-component-in-tag": true
+    }
+  }
+}

@@ -50,18 +50,6 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry.scripts]
 hello = "hello.cli:main"
 
-[tool.commitizen]
-name = "cz_conventional_commits"
-version = "0.23.0"
-tag_format = "v$version"
-update_changelog_on_bump = true
-changelog_file = "CHANGELOG.md"
-version_files = [
-  "pyproject.toml:version",
-  "src/hello/__init__.py",
-  "tests/test_version.py:__expected_version__",
-]
-gpg_sign = true
 
 [tool.pytest.ini_options]
 minversion = "7.0"

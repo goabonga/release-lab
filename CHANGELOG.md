@@ -19,6 +19,13 @@
 
 - split lint and test into separate jobs
 
+## [0.24.1](https://github.com/goabonga/release-lab/compare/v0.24.0...v0.24.1) (2026-03-22)
+
+
+### Bug Fixes
+
+* fix Docker build, PyPI publish, and docs deploy ([b257be2](https://github.com/goabonga/release-lab/commit/b257be2d4afb5e58cbde18cb6343104cd7ec98e5))
+
 ## [0.24.0](https://github.com/goabonga/release-lab/compare/v0.23.0...v0.24.0) (2026-03-22)
 
 

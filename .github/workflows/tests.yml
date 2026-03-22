@@ -116,6 +116,7 @@ jobs:
 
       - name: 🧪 Run tests
         id: run_tests
+        continue-on-error: true
         run: poetry run pytest --cov
 
       - name: 📤 Upload coverage reports to Codecov
@@ -130,3 +131,72 @@ jobs:
         uses: codecov/test-results-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: 📊 Save test results
+        if: always()
+        run: |
+          echo "$( [ "$SPDX_FAILED" = "true" ] && echo fail || echo pass )|📜 Check SPDX license headers" > test-result.txt
+          echo "$( [ "$ISORT_FAILED" = "true" ] && echo fail || echo pass )|🧹 Check import sorting with isort" >> test-result.txt
+          echo "$( [ "$RUFF_FAILED" = "true" ] && echo fail || echo pass )|🐶 Check lint with ruff" >> test-result.txt
+          echo "$( [ "$MYPY_FAILED" = "true" ] && echo fail || echo pass )|🔎 Type check with MyPy" >> test-result.txt
+          echo "$( [ "${{ steps.run_tests.outcome }}" = "success" ] && echo pass || echo fail )|🧪 Run tests" >> test-result.txt
+
+      - name: 📤 Upload test result artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-result-py${{ matrix.python-version }}
+          path: test-result.txt
+
+      - name: ❌ Fail if checks failed
+        if: env.SPDX_FAILED == 'true' || env.ISORT_FAILED == 'true' || env.RUFF_FAILED == 'true' || env.MYPY_FAILED == 'true' || steps.run_tests.outcome == 'failure'
+        run: exit 1
+
+  test-plan:
+    name: Update PR Test Plan
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Download all test results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-result-py*
+
+      - name: 📝 Update PR test plan
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          {
+            echo "<!-- test-plan -->"
+            echo "## Test Plan"
+            for version in "3.10" "3.11" "3.12" "3.13"; do
+              dir="test-result-py${version}"
+              if [ -d "$dir" ]; then
+                while IFS='|' read -r result label; do
+                  if [ "$result" = "pass" ]; then
+                    echo "- [x] ${label} on Python ${version}"
+                  else
+                    echo "- [ ] ${label} on Python ${version}"
+                  fi
+                done < "${dir}/test-result.txt"
+              fi
+            done
+          } > test-plan.md
+
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          CURRENT_BODY=$(gh pr view "$PR_NUMBER" --json body -q .body)
+          printf '%s' "$CURRENT_BODY" > current-body.md
+
+          if grep -q "<!-- test-plan -->" current-body.md; then
+            sed -i '/<!-- test-plan -->/,/<!-- test-plan-end -->/d' current-body.md
+          fi
+
+          {
+            cat current-body.md
+            echo ""
+            cat test-plan.md
+            echo "<!-- test-plan-end -->"
+          } > new-body.md
+
+          gh pr edit "$PR_NUMBER" --body-file new-body.md

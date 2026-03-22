@@ -60,7 +60,6 @@ version_files = [
   "pyproject.toml:version",
   "src/hello/__init__.py",
   "tests/test_version.py:__expected_version__",
-  "chart/release-lab/Chart.yaml:version",
   "chart/release-lab/Chart.yaml:appVersion",
 ]
 gpg_sign = true

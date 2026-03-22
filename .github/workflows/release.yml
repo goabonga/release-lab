@@ -109,6 +109,7 @@ jobs:
     if: needs.check-release-commit.outputs.is_release == 'true'
     outputs:
       version: ${{ steps.bump.outputs.version }}
+      chart_changed: ${{ steps.chart_check.outputs.chart_changed }}
     steps:
       - name: ⬇️ Checkout
         uses: actions/checkout@v5
@@ -174,6 +175,34 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         continue-on-error: true
+
+      - name: 📊 Bump chart version if chart changed
+        if: steps.bump.outputs.version != ''
+        id: chart_check
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+          if [ -n "$LAST_TAG" ]; then
+            CHART_CHANGED=$(git diff --name-only "$LAST_TAG"..HEAD -- chart/ | head -1)
+          else
+            CHART_CHANGED="initial"
+          fi
+
+          if [ -n "$CHART_CHANGED" ]; then
+            echo "chart_changed=true" >> $GITHUB_OUTPUT
+            echo "Chart files changed, bumping chart version..."
+            CURRENT=$(grep '^version:' chart/release-lab/Chart.yaml | awk '{print $2}')
+            MAJOR=$(echo "$CURRENT" | cut -d. -f1)
+            MINOR=$(echo "$CURRENT" | cut -d. -f2)
+            PATCH=$(echo "$CURRENT" | cut -d. -f3)
+            NEW_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))"
+            sed -i "s/^version: .*/version: ${NEW_VERSION}/" chart/release-lab/Chart.yaml
+            git add chart/release-lab/Chart.yaml
+            git commit --amend --no-edit
+            echo "Chart version bumped: ${CURRENT} -> ${NEW_VERSION}"
+          else
+            echo "chart_changed=false" >> $GITHUB_OUTPUT
+            echo "No chart changes detected, skipping chart version bump"
+          fi
 
       - name: 🧱 Build distribution
         if: steps.bump.outputs.version != ''
@@ -387,7 +416,7 @@ jobs:
     needs:
       - github_release
       - bump_and_build
-    if: needs.bump_and_build.outputs.version != ''
+    if: needs.bump_and_build.outputs.version != '' && needs.bump_and_build.outputs.chart_changed == 'true'
     permissions:
       contents: read
       packages: write

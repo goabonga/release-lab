@@ -82,33 +82,30 @@ jobs:
             echo "RUFF_FAILED=true" >> $GITHUB_ENV
           fi
 
-      - name: 📝 Mark as resolved if all checks passed
-        if: env.SPDX_FAILED != 'true' && env.ISORT_FAILED != 'true' && env.RUFF_FAILED != 'true'
-        run: |
-          echo "<!-- lint-summary -->" > lint_summary.md
-          echo "## 🧪 Linting Summary" >> lint_summary.md
-          echo "### ✅ All checks passed" >> lint_summary.md
-          echo "- 📜 SPDX license headers" >> lint_summary.md
-          echo "- 🧹 isort" >> lint_summary.md
-          echo "- 🐶 ruff" >> lint_summary.md
-
-      - name: 💬 Comment lint results
+      - name: 💬 Comment or delete lint results
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           MARKER="<!-- lint-summary -->"
           PR_NUMBER=${{ github.event.pull_request.number }}
-          BODY=$(cat lint_summary.md)
+          LINT_FAILED="${{ env.SPDX_FAILED == 'true' || env.ISORT_FAILED == 'true' || env.RUFF_FAILED == 'true' }}"
 
           COMMENT_ID=$(gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
             --paginate --jq ".[] | select(.body | contains(\"${MARKER}\")) | .id" | head -1)
 
-          if [ -n "$COMMENT_ID" ]; then
-            gh api "repos/${{ github.repository }}/issues/comments/${COMMENT_ID}" \
-              -X PATCH -f body="$BODY"
+          if [ "$LINT_FAILED" = "true" ]; then
+            BODY=$(cat lint_summary.md)
+            if [ -n "$COMMENT_ID" ]; then
+              gh api "repos/${{ github.repository }}/issues/comments/${COMMENT_ID}" \
+                -X PATCH -f body="$BODY"
+            else
+              gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
+                -f body="$BODY"
+            fi
           else
-            gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
-              -f body="$BODY"
+            if [ -n "$COMMENT_ID" ]; then
+              gh api "repos/${{ github.repository }}/issues/comments/${COMMENT_ID}" -X DELETE
+            fi
           fi
 
       - name: 📊 Save lint results
@@ -171,31 +168,29 @@ jobs:
             echo "MYPY_FAILED=true" >> $GITHUB_ENV
           fi
 
-      - name: 📝 Mark as resolved if mypy passed
-        if: env.MYPY_FAILED != 'true'
-        run: |
-          echo "<!-- test-summary-py${{ matrix.python-version }} -->" > test_summary.md
-          echo "## 🧪 Test Summary for Python ${{ matrix.python-version }}" >> test_summary.md
-          echo "### ✅ All checks passed" >> test_summary.md
-          echo "- 🔎 mypy" >> test_summary.md
-
-      - name: 💬 Comment test results
+      - name: 💬 Comment or delete test results
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           MARKER="<!-- test-summary-py${{ matrix.python-version }} -->"
           PR_NUMBER=${{ github.event.pull_request.number }}
-          BODY=$(cat test_summary.md)
 
           COMMENT_ID=$(gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
             --paginate --jq ".[] | select(.body | contains(\"${MARKER}\")) | .id" | head -1)
 
-          if [ -n "$COMMENT_ID" ]; then
-            gh api "repos/${{ github.repository }}/issues/comments/${COMMENT_ID}" \
-              -X PATCH -f body="$BODY"
+          if [ "$MYPY_FAILED" = "true" ]; then
+            BODY=$(cat test_summary.md)
+            if [ -n "$COMMENT_ID" ]; then
+              gh api "repos/${{ github.repository }}/issues/comments/${COMMENT_ID}" \
+                -X PATCH -f body="$BODY"
+            else
+              gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
+                -f body="$BODY"
+            fi
           else
-            gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
-              -f body="$BODY"
+            if [ -n "$COMMENT_ID" ]; then
+              gh api "repos/${{ github.repository }}/issues/comments/${COMMENT_ID}" -X DELETE
+            fi
           fi
 
       - name: 🧪 Run tests

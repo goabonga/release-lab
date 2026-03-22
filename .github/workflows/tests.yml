@@ -184,11 +184,12 @@ jobs:
             for version in "3.10" "3.11" "3.12" "3.13"; do
               dir="test-result-py${version}"
               if [ -d "$dir" ]; then
+                echo "### Python ${version}"
                 while IFS='|' read -r result label; do
                   if [ "$result" = "pass" ]; then
-                    echo "- [x] ${label} on Python ${version}"
+                    echo "- [x] ${label}"
                   else
-                    echo "- [ ] ${label} on Python ${version}"
+                    echo "- [ ] ${label}"
                   fi
                 done < "${dir}/test-result.txt"
               fi

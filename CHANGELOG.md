@@ -1,3 +1,24 @@
+## v0.23.0 (2026-03-22)
+
+### Feat
+
+- delete PR comments when checks pass instead of updating
+- list checks under all-passed summary comment
+- group test plan checkboxes by Python version
+- add test plan with per-check checkboxes in PR body
+- update PR lint comments when checks are resolved
+- add pr check errors summary
+
+### Fix
+
+- fix header ...
+- replace peter-evans action with gh api for comment upsert
+- add --repo flag to gh commands in test-plan job
+
+### Refactor
+
+- split lint and test into separate jobs
+
 ## v0.22.1 (2025-08-07)
 
 ### Fix

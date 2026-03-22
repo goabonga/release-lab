@@ -13,14 +13,9 @@ env:
   POETRY_VERSION: "2.1.1"
 
 jobs:
-  test:
-    name: Test and Lint (Python ${{ matrix.python-version }})
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
-
     steps:
       - name: ⬇️ Checkout
         uses: actions/checkout@v5
@@ -28,7 +23,7 @@ jobs:
       - name: 🐍 Setup Python
         uses: actions/setup-python@v6
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.13"
 
       - name: 🛠️ Install Poetry
         uses: abatilo/actions-poetry@v4
@@ -40,8 +35,8 @@ jobs:
 
       - name: 📝 Init summary file
         run: |
-          echo "<!-- lint-summary-py${{ matrix.python-version }} -->" > lint_summary.md
-          echo "## 🧪 Linting Summary for Python ${{ matrix.python-version }}" >> lint_summary.md
+          echo "<!-- lint-summary -->" > lint_summary.md
+          echo "## 🧪 Linting Summary" >> lint_summary.md
 
       - name: 📜 Check SPDX license headers
         id: spdx_check
@@ -87,36 +82,110 @@ jobs:
             echo "RUFF_FAILED=true" >> $GITHUB_ENV
           fi
 
-      - name: 🔎 Type check with MyPy
-        id: mypy_check
-        continue-on-error: true
-        run: |
-          if ! poetry run mypy src/ tests/ > mypy_output.txt; then
-            echo "### ❌ mypy failed" >> lint_summary.md
-            echo "\`\`\`" >> lint_summary.md
-            cat mypy_output.txt >> lint_summary.md
-            echo "\`\`\`" >> lint_summary.md
-            echo "MYPY_FAILED=true" >> $GITHUB_ENV
-          fi
-
       - name: 📝 Mark as resolved if all checks passed
-        if: env.SPDX_FAILED != 'true' && env.ISORT_FAILED != 'true' && env.RUFF_FAILED != 'true' && env.MYPY_FAILED != 'true'
+        if: env.SPDX_FAILED != 'true' && env.ISORT_FAILED != 'true' && env.RUFF_FAILED != 'true'
         run: |
-          echo "<!-- lint-summary-py${{ matrix.python-version }} -->" > lint_summary.md
-          echo "## 🧪 Linting Summary for Python ${{ matrix.python-version }}" >> lint_summary.md
+          echo "<!-- lint-summary -->" > lint_summary.md
+          echo "## 🧪 Linting Summary" >> lint_summary.md
           echo "### ✅ All checks passed" >> lint_summary.md
           echo "- 📜 SPDX license headers" >> lint_summary.md
           echo "- 🧹 isort" >> lint_summary.md
           echo "- 🐶 ruff" >> lint_summary.md
-          echo "- 🔎 mypy" >> lint_summary.md
 
       - name: 💬 Comment lint results
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          MARKER="<!-- lint-summary-py${{ matrix.python-version }} -->"
+          MARKER="<!-- lint-summary -->"
           PR_NUMBER=${{ github.event.pull_request.number }}
           BODY=$(cat lint_summary.md)
+
+          COMMENT_ID=$(gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
+            --paginate --jq ".[] | select(.body | contains(\"${MARKER}\")) | .id" | head -1)
+
+          if [ -n "$COMMENT_ID" ]; then
+            gh api "repos/${{ github.repository }}/issues/comments/${COMMENT_ID}" \
+              -X PATCH -f body="$BODY"
+          else
+            gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
+              -f body="$BODY"
+          fi
+
+      - name: 📊 Save lint results
+        if: always()
+        run: |
+          echo "$( [ "$SPDX_FAILED" = "true" ] && echo fail || echo pass )|📜 SPDX license headers" > test-result.txt
+          echo "$( [ "$ISORT_FAILED" = "true" ] && echo fail || echo pass )|🧹 isort" >> test-result.txt
+          echo "$( [ "$RUFF_FAILED" = "true" ] && echo fail || echo pass )|🐶 ruff" >> test-result.txt
+
+      - name: 📤 Upload lint result artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-result-lint
+          path: test-result.txt
+
+      - name: ❌ Fail if checks failed
+        if: env.SPDX_FAILED == 'true' || env.ISORT_FAILED == 'true' || env.RUFF_FAILED == 'true'
+        run: exit 1
+
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: 🛠️ Install Poetry
+        uses: abatilo/actions-poetry@v4
+        with:
+          poetry-version: ${{ env.POETRY_VERSION }}
+
+      - name: 📦 Install dependencies
+        run: poetry install --with dev
+
+      - name: 📝 Init summary file
+        run: |
+          echo "<!-- test-summary-py${{ matrix.python-version }} -->" > test_summary.md
+          echo "## 🧪 Test Summary for Python ${{ matrix.python-version }}" >> test_summary.md
+
+      - name: 🔎 Type check with MyPy
+        id: mypy_check
+        continue-on-error: true
+        run: |
+          if ! poetry run mypy src/ tests/ > mypy_output.txt; then
+            echo "### ❌ mypy failed" >> test_summary.md
+            echo "\`\`\`" >> test_summary.md
+            cat mypy_output.txt >> test_summary.md
+            echo "\`\`\`" >> test_summary.md
+            echo "MYPY_FAILED=true" >> $GITHUB_ENV
+          fi
+
+      - name: 📝 Mark as resolved if mypy passed
+        if: env.MYPY_FAILED != 'true'
+        run: |
+          echo "<!-- test-summary-py${{ matrix.python-version }} -->" > test_summary.md
+          echo "## 🧪 Test Summary for Python ${{ matrix.python-version }}" >> test_summary.md
+          echo "### ✅ All checks passed" >> test_summary.md
+          echo "- 🔎 mypy" >> test_summary.md
+
+      - name: 💬 Comment test results
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          MARKER="<!-- test-summary-py${{ matrix.python-version }} -->"
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          BODY=$(cat test_summary.md)
 
           COMMENT_ID=$(gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
             --paginate --jq ".[] | select(.body | contains(\"${MARKER}\")) | .id" | head -1)
@@ -150,11 +219,8 @@ jobs:
       - name: 📊 Save test results
         if: always()
         run: |
-          echo "$( [ "$SPDX_FAILED" = "true" ] && echo fail || echo pass )|📜 Check SPDX license headers" > test-result.txt
-          echo "$( [ "$ISORT_FAILED" = "true" ] && echo fail || echo pass )|🧹 Check import sorting with isort" >> test-result.txt
-          echo "$( [ "$RUFF_FAILED" = "true" ] && echo fail || echo pass )|🐶 Check lint with ruff" >> test-result.txt
-          echo "$( [ "$MYPY_FAILED" = "true" ] && echo fail || echo pass )|🔎 Type check with MyPy" >> test-result.txt
-          echo "$( [ "${{ steps.run_tests.outcome }}" = "success" ] && echo pass || echo fail )|🧪 Run tests" >> test-result.txt
+          echo "$( [ "$MYPY_FAILED" = "true" ] && echo fail || echo pass )|🔎 mypy" > test-result.txt
+          echo "$( [ "${{ steps.run_tests.outcome }}" = "success" ] && echo pass || echo fail )|🧪 pytest" >> test-result.txt
 
       - name: 📤 Upload test result artifact
         if: always()
@@ -164,19 +230,19 @@ jobs:
           path: test-result.txt
 
       - name: ❌ Fail if checks failed
-        if: env.SPDX_FAILED == 'true' || env.ISORT_FAILED == 'true' || env.RUFF_FAILED == 'true' || env.MYPY_FAILED == 'true' || steps.run_tests.outcome == 'failure'
+        if: env.MYPY_FAILED == 'true' || steps.run_tests.outcome == 'failure'
         run: exit 1
 
   test-plan:
     name: Update PR Test Plan
-    needs: test
+    needs: [lint, test]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Download all test results
         uses: actions/download-artifact@v4
         with:
-          pattern: test-result-py*
+          pattern: test-result-*
 
       - name: 📝 Update PR test plan
         env:
@@ -185,6 +251,17 @@ jobs:
           {
             echo "<!-- test-plan -->"
             echo "## Test Plan"
+            dir="test-result-lint"
+            if [ -d "$dir" ]; then
+              echo "### Lint"
+              while IFS='|' read -r result label; do
+                if [ "$result" = "pass" ]; then
+                  echo "- [x] ${label}"
+                else
+                  echo "- [ ] ${label}"
+                fi
+              done < "${dir}/test-result.txt"
+            fi
             for version in "3.10" "3.11" "3.12" "3.13"; do
               dir="test-result-py${version}"
               if [ -d "$dir" ]; then

@@ -120,7 +120,7 @@ jobs:
 
       - name: 📤 Upload lint result artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-result-lint
           path: test-result.txt
@@ -223,7 +223,7 @@ jobs:
 
       - name: 📤 Upload test result artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-result-py${{ matrix.python-version }}
           path: test-result.txt
